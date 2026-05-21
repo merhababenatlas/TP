@@ -2,85 +2,145 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>3D Texture Painter</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Texture Painter</title>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./css/style.css">
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#121212">
-    <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-    <!-- Top Bar -->
-    <div id="top-bar" class="panel top-bar">
-        <div style="display: flex; gap: 10px;">
-            <button id="btn-toggle-ui" class="borderless-btn">👁 Gizle</button>
-            <button id="btn-wireframe" class="borderless-btn">🕸 Kapalı</button>
-            <button id="btn-import-model" class="borderless-btn">📦 Model Yükle</button>
-            <input type="file" id="file-import-model" accept=".obj" style="display: none;">
-            <input type="file" id="file-import-image" accept="image/*" style="display: none;">
+    <div id="canvas-container"></div>
+    
+    <!-- Title Panel (Top Left) -->
+    <div class="panel title-panel" id="main-menu-panel">
+        <button class="borderless-btn" id="btn-main-menu" style="font-size:16px; font-weight:600; padding: 12px 16px; display: flex; align-items: center; gap: 8px;">
+            Texture Painter <span id="menu-arrow" style="font-size: 12px; transition: transform 0.3s;">▶</span>
+        </button>
+        <div id="main-menu-content" class="menu-content collapsed">
+            <button class="borderless-btn" id="btn-import-model">📁 Model</button>
+            <button class="borderless-btn" id="btn-export">💾 Kaydet</button>
         </div>
-        <button id="btn-export" class="borderless-btn">Export</button>
     </div>
 
-    <!-- Left Panel: Tools -->
-    <div id="left-panel" class="panel left-panel">
-        <div class="tool-group">
-            <button class="tool-btn active" data-tool="brush" title="Fırça">🖌</button>
-            <button class="tool-btn" data-tool="eraser" title="Silgi">▱</button>
-            <button class="tool-btn" data-tool="blur" title="Blur">💧</button>
-            <button class="tool-btn" data-tool="smudge" title="Miks">🌪</button>
-            <button class="tool-btn" data-tool="picker" title="Seçici">
-                ⌖
+    <!-- Actions Panel (Bottom Center) -->
+    <div class="panel actions-panel">
+        <button class="borderless-btn" id="btn-cull-mode">🔄 Yön: Ön</button>
+        <button class="borderless-btn" id="btn-lit-mode">💡 Işık: Kapalı</button>
+        <button class="borderless-btn" id="btn-wireframe">🕸 Ağ: Kapalı</button>
+        <button class="borderless-btn" id="btn-axes">📍 Eksen: Kapalı</button>
+        <input type="file" id="file-import-model" accept=".obj" style="display: none;">
+        <input type="file" id="file-import-image" accept="image/*" style="display: none;">
+    </div>
+
+    <!-- Tools Panel (Top Center) -->
+    <div class="panel tools-panel">
+        <div class="tool-group-horizontal">
+            <button class="tool-btn active" data-tool="brush" id="btn-brush" title="Fırça (B)">🖌️</button>
+            <button class="tool-btn" data-tool="eraser" id="btn-eraser" title="Silgi (E)">🧽</button>
+            <button class="tool-btn" data-tool="blur" id="btn-blur" title="Bulanıklaştırma">💧</button>
+            <button class="tool-btn" data-tool="smear" id="btn-smear" title="Sıvama / Sürükleme">👈</button>
+            <button class="tool-btn" data-tool="picker" id="btn-picker" title="Renk Seçici (I)">
+                📍
                 <div id="picker-preview" class="hidden"></div>
             </button>
+            <div style="width: 1px; background: rgba(255,255,255,0.2); height: 30px; margin: 0 5px;"></div>
+            <div class="color-picker-wrapper">
+                <input type="color" id="color-picker" value="#3296ff" title="Fırça Rengi">
+            </div>
         </div>
+    </div>
+
+    <!-- Layers Panel (Top Right) -->
+    <div class="panel layers-panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; padding: 0 5px;">
+            <span style="font-size: 12px; font-weight: 500; color: #aaa;">Katmanlar</span>
+            <button class="borderless-btn" id="btn-add-layer" style="font-size: 16px; padding: 2px 5px;" title="Yeni Katman">+</button>
+        </div>
+        <div class="layer-list" id="layer-list">
+            <!-- Layers injected by JS -->
+        </div>
+    </div>
+
+    <!-- Sliders & Color Panel (Left Center) -->
+    <div class="panel sliders-panel">
         <div class="slider-group">
             <div class="slider-container">
-                <span title="Boyut">📏</span>
-                <input type="range" id="size-slider" min="1" max="100" value="10" orient="vertical">
+                <span title="Boyut">⭕</span>
+                <div class="vertical-slider-wrapper">
+                    <input type="range" id="size-slider" min="1" max="100" value="50">
+                </div>
             </div>
             <div class="slider-container">
-                <span title="Yoğunluk">💧</span>
-                <input type="range" id="intensity-slider" min="1" max="100" value="100" orient="vertical">
+                <span title="Yoğunluk">🌊</span>
+                <div class="vertical-slider-wrapper">
+                    <input type="range" id="intensity-slider" min="0" max="100" value="50">
+                </div>
             </div>
             <div class="slider-container">
                 <span title="Sertlik">🌫</span>
-                <input type="range" id="hardness-slider" min="0" max="100" value="100" orient="vertical">
-            </div>
-        </div>
-        <div class="color-group">
-            <input type="color" id="color-picker" value="#ff0000">
-        </div>
-    </div>
-
-    <!-- Right Panel: Layers -->
-    <div id="right-panel" class="panel right-panel">
-        <div id="layer-list" class="layer-list">
-            <!-- Layers will be populated by JS -->
-        </div>
-        <div class="layer-controls">
-            <input type="range" id="opacity-slider" min="0" max="100" value="100">
-            <div class="layer-actions">
-                <button id="btn-add-layer" class="borderless-btn" title="Ekle">+</button>
-                <button id="btn-delete-layer" class="borderless-btn" title="Sil">✕</button>
+                <div class="vertical-slider-wrapper">
+                    <input type="range" id="hardness-slider" min="0" max="100" value="50">
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- 3D Canvas Container -->
-    <div id="canvas-container"></div>
+    <!-- History Panel (Bottom Left) -->
+    <div class="panel history-panel">
+        <button class="tool-btn" id="btn-undo" title="Geri Al (Ctrl+Z)">
+            ↩️<span id="undo-count" class="history-badge"></span>
+        </button>
+        <button class="tool-btn" id="btn-redo" title="İleri Al (Ctrl+Alt+Z)">
+            ↪️<span id="redo-count" class="history-badge"></span>
+        </button>
+    </div>
 
     <!-- Texture Preview Overlay -->
     <div id="texture-preview-overlay" class="hidden">
         <div class="texture-preview-content">
-            <button id="btn-close-preview" class="borderless-btn">✕ Kapat</button>
-            <img id="texture-preview-image" src="" alt="Texture Preview">
+            <div class="preview-controls">
+                <button id="btn-toggle-uv" class="borderless-btn">🕸 UV Ağı: Kapalı</button>
+                <button id="btn-close-preview" class="borderless-btn">✕ Kapat</button>
+            </div>
+            <div class="preview-image-container">
+                <img id="texture-preview-image" src="" alt="Texture Preview">
+                <img id="uv-wireframe-image" src="" alt="UV Wireframe" class="hidden">
+            </div>
         </div>
     </div>
 
-    <!-- Three.js Libraries -->
-    <script src="./three.min.js"></script>
-    <script src="./OrbitControls.js"></script>
-    <script src="./OBJLoader.js"></script>
-    <script src="./app.js"></script>
+    <!-- Custom Confirm Modal -->
+    <div id="custom-confirm-overlay" class="hidden">
+        <div class="custom-confirm-box">
+            <h3 id="custom-confirm-title">Emin misiniz?</h3>
+            <p id="custom-confirm-message">Bu işlemi geri alamazsınız.</p>
+            <div class="custom-confirm-actions">
+                <button id="custom-confirm-cancel" class="btn-cancel">İptal</button>
+                <button id="custom-confirm-ok" class="btn-danger">Sil</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Libraries -->
+    <script src="./js/lib/three.min.js"></script>
+    <script src="./js/lib/OrbitControls.js"></script>
+    <script src="./js/lib/OBJLoader.js"></script>
+
+    <!-- Tools -->
+    <script src="./js/tools/Utils.js"></script>
+    <script src="./js/tools/Brush.js"></script>
+    <script src="./js/tools/Eraser.js"></script>
+    <script src="./js/tools/Blur.js"></script>
+    <script src="./js/tools/Smear.js"></script>
+    
+    <script src="./js/storage.js"></script>
+    <script src="./js/globals.js"></script>
+    <script src="./js/HistoryManager.js"></script>
+    <script src="./js/LayerManager.js"></script>
+    <script src="./js/UIManager.js"></script>
+    <script src="./js/ThreeEngine.js"></script>
+    <script src="./js/app.js"></script>
 </body>
 </html>
