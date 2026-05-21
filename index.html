@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>3D Texture Painter</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#121212">
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <!-- Top Bar -->
+    <div id="top-bar" class="panel top-bar">
+        <div style="display: flex; gap: 10px;">
+            <button id="btn-toggle-ui" class="borderless-btn">👁 Gizle</button>
+            <button id="btn-wireframe" class="borderless-btn">🕸 Kapalı</button>
+            <button id="btn-import-model" class="borderless-btn">📦 Model Yükle</button>
+            <input type="file" id="file-import-model" accept=".obj" style="display: none;">
+            <input type="file" id="file-import-image" accept="image/*" style="display: none;">
+        </div>
+        <button id="btn-export" class="borderless-btn">Export</button>
+    </div>
+
+    <!-- Left Panel: Tools -->
+    <div id="left-panel" class="panel left-panel">
+        <div class="tool-group">
+            <button class="tool-btn active" data-tool="brush" title="Fırça">🖌</button>
+            <button class="tool-btn" data-tool="eraser" title="Silgi">▱</button>
+            <button class="tool-btn" data-tool="blur" title="Blur">💧</button>
+            <button class="tool-btn" data-tool="smudge" title="Miks">🌪</button>
+            <button class="tool-btn" data-tool="picker" title="Seçici">
+                ⌖
+                <div id="picker-preview" class="hidden"></div>
+            </button>
+        </div>
+        <div class="slider-group">
+            <div class="slider-container">
+                <span title="Boyut">📏</span>
+                <input type="range" id="size-slider" min="1" max="100" value="10" orient="vertical">
+            </div>
+            <div class="slider-container">
+                <span title="Yoğunluk">💧</span>
+                <input type="range" id="intensity-slider" min="1" max="100" value="100" orient="vertical">
+            </div>
+            <div class="slider-container">
+                <span title="Sertlik">🌫</span>
+                <input type="range" id="hardness-slider" min="0" max="100" value="100" orient="vertical">
+            </div>
+        </div>
+        <div class="color-group">
+            <input type="color" id="color-picker" value="#ff0000">
+        </div>
+    </div>
+
+    <!-- Right Panel: Layers -->
+    <div id="right-panel" class="panel right-panel">
+        <div id="layer-list" class="layer-list">
+            <!-- Layers will be populated by JS -->
+        </div>
+        <div class="layer-controls">
+            <input type="range" id="opacity-slider" min="0" max="100" value="100">
+            <div class="layer-actions">
+                <button id="btn-add-layer" class="borderless-btn" title="Ekle">+</button>
+                <button id="btn-delete-layer" class="borderless-btn" title="Sil">✕</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3D Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- Texture Preview Overlay -->
+    <div id="texture-preview-overlay" class="hidden">
+        <div class="texture-preview-content">
+            <button id="btn-close-preview" class="borderless-btn">✕ Kapat</button>
+            <img id="texture-preview-image" src="" alt="Texture Preview">
+        </div>
+    </div>
+
+    <!-- Three.js Libraries -->
+    <script src="./three.min.js"></script>
+    <script src="./OrbitControls.js"></script>
+    <script src="./OBJLoader.js"></script>
+    <script src="./app.js"></script>
+</body>
+</html>
