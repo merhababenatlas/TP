@@ -1,10 +1,37 @@
+function cloneRenderTarget(sourceRT) {
+    const targetRT = new THREE.WebGLRenderTarget(TEX_SIZE, TEX_SIZE, {
+        minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter,
+        format: THREE.RGBAFormat, type: THREE.HalfFloatType, depthBuffer: false
+    });
+    const oldTarget = renderer.getRenderTarget();
+    
+    if (paintScene && paintScene.children.length > 0) {
+        paintScene.children[0].material = paintMaterial;
+    }
+    
+    renderer.setRenderTarget(targetRT);
+    renderer.clear();
+
+    paintMaterial.uniforms.tLayer.value = sourceRT.texture;
+    paintMaterial.uniforms.uOpacity.value = 1.0;
+    paintMaterial.blending = THREE.NoBlending;
+    renderer.render(paintScene, paintCamera);
+    paintMaterial.blending = THREE.NormalBlending;
+    renderer.setRenderTarget(oldTarget);
+    return targetRT;
+}
+
 const HistoryManager = {
     states: [],
     currentIndex: -1,
     maxStates: 20,
 
     saveState: function() {
+        if (!renderer || !paintScene) return; // Not fully initialized yet
+
         if (this.currentIndex < this.states.length - 1) {
+            const removedStates = this.states.slice(this.currentIndex + 1);
+            removedStates.forEach(s => s.layers.forEach(l => l.rt.dispose()));
             this.states = this.states.slice(0, this.currentIndex + 1);
         }
 
@@ -15,13 +42,14 @@ const HistoryManager = {
                 name: l.name,
                 opacity: l.opacity,
                 isVisible: l.isVisible,
-                imageData: l.ctx.getImageData(0, 0, TEX_SIZE, TEX_SIZE)
+                rt: cloneRenderTarget(l.rt)
             }))
         };
 
         this.states.push(state);
         if (this.states.length > this.maxStates) {
-            this.states.shift();
+            const discarded = this.states.shift();
+            discarded.layers.forEach(l => l.rt.dispose());
         } else {
             this.currentIndex++;
         }
@@ -71,23 +99,18 @@ const HistoryManager = {
         // Clear DOM and Arrays
         const layerListEl = document.getElementById('layer-list');
         layerListEl.innerHTML = '';
+        
+        layers.forEach(l => l.rt.dispose());
         layers.length = 0;
         
         let maxId = 0;
 
         state.layers.forEach(savedLayer => {
-            const canvas = document.createElement('canvas');
-            canvas.width = TEX_SIZE;
-            canvas.height = TEX_SIZE;
-            const ctx = canvas.getContext('2d', { willReadFrequently: true });
-            ctx.putImageData(savedLayer.imageData, 0, 0);
-
             const currentData = currentLayerData[savedLayer.id];
 
             const layerObj = {
                 id: savedLayer.id,
-                canvas: canvas,
-                ctx: ctx,
+                rt: cloneRenderTarget(savedLayer.rt),
                 isVisible: currentData ? currentData.isVisible : savedLayer.isVisible,
                 opacity: currentData ? currentData.opacity : savedLayer.opacity,
                 name: currentData ? currentData.name : savedLayer.name
@@ -105,22 +128,15 @@ const HistoryManager = {
     }
 };
 
-// Base Background (Checker Map)
-const baseBgCanvas = document.createElement('canvas');
-baseBgCanvas.width = TEX_SIZE;
-baseBgCanvas.height = TEX_SIZE;
-const baseBgCtx = baseBgCanvas.getContext('2d');
-baseBgCtx.fillStyle = '#ffffff'; // Default to white while loading
-baseBgCtx.fillRect(0, 0, TEX_SIZE, TEX_SIZE);
+// Base Background
+// We still need base checkerboard logic in blitLayers, but we'll use a texture instead.
+const checkerTexture = new THREE.TextureLoader().load('./checker.jpg', () => {
+    checkerTexture.wrapS = THREE.RepeatWrapping;
+    checkerTexture.wrapT = THREE.RepeatWrapping;
+    if (mainRT) blitLayers();
+});
 
-const checkerImg = new Image();
-checkerImg.onload = () => {
-    baseBgCtx.drawImage(checkerImg, 0, 0, TEX_SIZE, TEX_SIZE);
-    if (mainCtx) {
-        blitLayers(); // Redraw when loaded
-    }
-};
-checkerImg.src = './checker.jpg';
+
 let targetLayerIndexForImage = -1;
 
 let currentModelText = null;

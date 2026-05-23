@@ -25,23 +25,21 @@ let mainCanvas, mainCtx, mainTexture;
 // Three.js Variables
 let scene, camera, renderer, cube, controls, raycaster, axesHelper;
 
-// Stroke Layer Architecture Variables
-const strokeCanvas = document.createElement('canvas');
-strokeCanvas.width = TEX_SIZE;
-strokeCanvas.height = TEX_SIZE;
-const strokeCtx = strokeCanvas.getContext('2d', { willReadFrequently: true });
+// WebGL Painting Architecture Variables
+let paintScene, paintCamera;
+let paintMaterial, brushMaterial, blurMaterial, smearMaterial;
 
-const tempCanvas = document.createElement('canvas');
-tempCanvas.width = TEX_SIZE;
-tempCanvas.height = TEX_SIZE;
-const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
-
+// Stroke Layer Tracking (WebGL)
 let isStrokeActive = false;
-let strokeDirtyRect = null;
+let strokeRT = null; // Target for building up the stroke
+let tempRT = null;   // Target for ping-ponging (Blur, Smear)
 
 // Pointer State
 let isDrawing = false;
 let lastMouse = null;
+let airbrushInterval = null;
+let lastUvPosition = null;
+let lastMouseMoveTime = 0;
 let previewColor = null;
 let draggedItemEl = null; // Used for drag and drop
 

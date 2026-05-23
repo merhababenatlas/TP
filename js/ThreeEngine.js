@@ -10,6 +10,7 @@ function initThreeJS() {
     camera.position.set(2, 2, -3); // Ön-Sol-Üst (Front-Left-Top)
 
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.autoClear = false; // CRITICAL: Prevent auto-clearing during layer composition and brushing!
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     container.appendChild(renderer.domElement);
@@ -30,17 +31,72 @@ function initThreeJS() {
     dirLight.position.set(5, 5, 5);
     scene.add(dirLight);
 
-    // Texture
-    mainTexture = new THREE.CanvasTexture(mainCanvas);
-    mainTexture.magFilter = THREE.NearestFilter;
-    mainTexture.minFilter = THREE.NearestFilter;
-    mainTexture.generateMipmaps = false;
-    mainTexture.colorSpace = THREE.SRGBColorSpace;
+    // --- WebGL Painting Initialization ---
+    paintScene = new THREE.Scene();
+    paintCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    
+    tempRT = new THREE.WebGLRenderTarget(TEX_SIZE, TEX_SIZE, {
+        minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter,
+        format: THREE.RGBAFormat, type: THREE.HalfFloatType, colorSpace: THREE.SRGBColorSpace, depthBuffer: false
+    });
 
-    // Cube
+    paintMaterial = new THREE.ShaderMaterial({
+        vertexShader: window.PaintShaders.vertexShader,
+        fragmentShader: window.PaintShaders.compositeFragmentShader,
+        uniforms: {
+            tLayer: { value: null },
+            uOpacity: { value: 1.0 }
+        },
+        transparent: true,
+        blending: THREE.NormalBlending
+    });
+    
+    brushMaterial = new THREE.ShaderMaterial({
+        vertexShader: window.PaintShaders.vertexShader,
+        fragmentShader: window.PaintShaders.brushFragmentShader,
+        uniforms: {
+            uCenter: { value: new THREE.Vector2(0.5, 0.5) },
+            uRadius: { value: 0.1 },
+            uColor: { value: new THREE.Color() },
+            uIntensity: { value: 1.0 },
+            uHardness: { value: 0.5 }
+        },
+        transparent: true,
+        blending: THREE.NormalBlending
+    });
+    
+    blurMaterial = new THREE.ShaderMaterial({
+        vertexShader: window.PaintShaders.vertexShader,
+        fragmentShader: window.PaintShaders.blurFragmentShader,
+        uniforms: {
+            tDiffuse: { value: null },
+            uCenter: { value: new THREE.Vector2(0.5, 0.5) },
+            uRadius: { value: 0.1 },
+            uIntensity: { value: 1.0 },
+            uHardness: { value: 0.5 },
+            uTexSize: { value: TEX_SIZE }
+        }
+    });
+
+    smearMaterial = new THREE.ShaderMaterial({
+        vertexShader: window.PaintShaders.vertexShader,
+        fragmentShader: window.PaintShaders.smearFragmentShader,
+        uniforms: {
+            tDiffuse: { value: null },
+            uCenter: { value: new THREE.Vector2(0.5, 0.5) },
+            uRadius: { value: 0.1 },
+            uIntensity: { value: 1.0 },
+            uHardness: { value: 0.5 },
+            uDirection: { value: new THREE.Vector2(0, 0) }
+        }
+    });
+
+    const paintQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), paintMaterial);
+    paintScene.add(paintQuad);
+
+    // Cube Material Initialization (map will be set by LayerManager)
     const geometry = new THREE.BoxGeometry(1, 1, 1);
     const material = new THREE.MeshStandardMaterial({ 
-        map: mainTexture,
         transparent: true,
         alphaTest: 0.01
     });
@@ -102,16 +158,23 @@ function onPointerDown(event) {
         if (currentTool === 'picker') {
             updatePickerPreview(intersect.uv);
         } else {
-            if (currentTool === 'brush' || currentTool === 'eraser') {
-                strokeCtx.clearRect(0, 0, TEX_SIZE, TEX_SIZE);
-                isStrokeActive = true;
-                strokeDirtyRect = null;
-            } else {
-                isStrokeActive = false;
-            }
+            isStrokeActive = true;
             
             lastMouse = { x: event.clientX, y: event.clientY };
+            lastUvPosition = { x: intersect.uv.x, y: intersect.uv.y };
+            lastMouseMoveTime = Date.now();
+            
             applyTool(intersect.uv.x, intersect.uv.y);
+            
+            if (airbrushInterval) clearInterval(airbrushInterval);
+            airbrushInterval = setInterval(() => {
+                if (isDrawing && lastUvPosition) {
+                    const isStationary = (Date.now() - lastMouseMoveTime) > 50;
+                    if (isStationary) {
+                        applyTool(lastUvPosition.x, lastUvPosition.y);
+                    }
+                }
+            }, 50);
         }
     }
 }
@@ -135,13 +198,23 @@ function onPointerMove(event) {
     
     if (currentTool !== 'picker') {
         if (intersect && intersect.uv) {
+            const oldUvPosition = lastUvPosition ? { x: lastUvPosition.x, y: lastUvPosition.y } : { x: intersect.uv.x, y: intersect.uv.y };
+            lastUvPosition = { x: intersect.uv.x, y: intersect.uv.y };
+            lastMouseMoveTime = Date.now();
+            
             const currentMouse = { x: event.clientX, y: event.clientY };
             if (lastMouse) {
                 const dx = currentMouse.x - lastMouse.x;
                 const dy = currentMouse.y - lastMouse.y;
                 const dist = Math.sqrt(dx*dx + dy*dy);
                 
-                const stampDist = 5; 
+                const settings = toolSettings[currentTool];
+                const sSize = settings ? settings.size : 50;
+                
+                // For blur and smear, take fewer steps to prevent severe interpolation loss (blocky artifacts)
+                // For brush and eraser, take dense steps to prevent caterpillar effect
+                let stepMultiplier = (currentTool === 'blur' || currentTool === 'smear') ? 0.25 : 0.05;
+                const stampDist = Math.max(1, sSize * stepMultiplier); 
                 const steps = Math.max(1, Math.floor(dist / stampDist));
                 
                 for (let i = 1; i <= steps; i++) {
@@ -150,20 +223,26 @@ function onPointerMove(event) {
                     
                     const synthIntersect = getIntersectionFromEvent({ clientX: lerpX, clientY: lerpY });
                     if (synthIntersect && synthIntersect.uv) {
-                        applyTool(synthIntersect.uv.x, synthIntersect.uv.y);
+                        applyTool(synthIntersect.uv.x, synthIntersect.uv.y, oldUvPosition.x, oldUvPosition.y);
                     }
                 }
             } else {
-                applyTool(intersect.uv.x, intersect.uv.y);
+                applyTool(intersect.uv.x, intersect.uv.y, oldUvPosition.x, oldUvPosition.y);
             }
             lastMouse = currentMouse;
         } else {
             lastMouse = null;
+            lastUvPosition = null;
         }
     }
 }
 
 function onPointerUp(event) {
+    if (airbrushInterval) {
+        clearInterval(airbrushInterval);
+        airbrushInterval = null;
+    }
+
     if (isDrawing && currentTool === 'picker' && previewColor) {
         currentColor = previewColor;
         document.getElementById('color-picker').value = previewColor;
@@ -173,44 +252,8 @@ function onPointerUp(event) {
     }
 
     if (isDrawing && currentTool !== 'picker') {
-        if (isStrokeActive) {
-            // Commit stroke to active layer
-            const activeLayer = layers[activeLayerIndex];
-            const ctx = activeLayer.ctx;
-            const settings = toolSettings[currentTool];
-            const intensity = settings ? settings.intensity : 100;
-            
-            ctx.save();
-            if (currentTool === 'eraser') {
-                ctx.globalCompositeOperation = 'destination-out';
-            } else {
-                ctx.globalCompositeOperation = 'source-over';
-            }
-            ctx.globalAlpha = intensity / 100;
-            
-            if (strokeDirtyRect) {
-                // Ensure dirty rect is clamped
-                let dx = Math.floor(strokeDirtyRect.x);
-                let dy = Math.floor(strokeDirtyRect.y);
-                let dw = Math.ceil(strokeDirtyRect.w);
-                let dh = Math.ceil(strokeDirtyRect.h);
-                if (dx < 0) { dw += dx; dx = 0; }
-                if (dy < 0) { dh += dy; dy = 0; }
-                if (dx + dw > TEX_SIZE) dw = TEX_SIZE - dx;
-                if (dy + dh > TEX_SIZE) dh = TEX_SIZE - dy;
-                
-                if (dw > 0 && dh > 0) {
-                    ctx.drawImage(strokeCanvas, dx, dy, dw, dh, dx, dy, dw, dh);
-                }
-            } else {
-                ctx.drawImage(strokeCanvas, 0, 0);
-            }
-            ctx.restore();
-            
-            isStrokeActive = false;
-            strokeDirtyRect = null;
-            blitLayers(); // Final render without the preview
-        }
+        isStrokeActive = false;
+        blitLayers(); // Final blend
         
         triggerAutosave();
         HistoryManager.saveState();
@@ -219,6 +262,11 @@ function onPointerUp(event) {
     isDrawing = false;
     controls.enabled = true;
     lastMouse = null;
+    lastUvPosition = null;
+}
+
+function commitStroke() {
+    // Obsolete in WebGL Flow architecture, as we draw directly to activeLayer.rt
 }
 
 function getIntersectionFromEvent(event) {
@@ -308,13 +356,15 @@ function applyMaterialMode() {
     else if (cullMode === 2) sideSetting = THREE.DoubleSide;
 
     let baseMaterial;
+    const currentMap = mainRT ? mainRT.texture : null;
+    
     if (isLitMode) {
         baseMaterial = new THREE.MeshStandardMaterial({ 
-            map: mainTexture, transparent: false, side: sideSetting
+            map: currentMap, transparent: false, side: sideSetting
         });
     } else {
         baseMaterial = new THREE.MeshBasicMaterial({ 
-            map: mainTexture, transparent: false, side: sideSetting
+            map: currentMap, transparent: false, side: sideSetting
         });
     }
 
@@ -365,44 +415,96 @@ function applyWireframeMode() {
     });
 }
 
-function applyTool(uvX, uvY) {
+function applyTool(uvX, uvY, oldUvX = null, oldUvY = null) {
+    if (!isStrokeActive) return;
+    
     const activeLayer = layers[activeLayerIndex];
-    const targetCtx = isStrokeActive ? strokeCtx : activeLayer.ctx;
+    if (!activeLayer || !activeLayer.rt) return;
 
-    const x = uvX * TEX_SIZE;
-    const y = (1 - uvY) * TEX_SIZE;
-
-    let dirtyRect = null;
     const settings = toolSettings[currentTool];
     const sSize = settings ? settings.size : 50;
     const sInt = settings ? settings.intensity : 50;
     const sHard = settings ? settings.hardness : 50;
+    
+    const uCenter = new THREE.Vector2(uvX, uvY);
+    const uRadius = (sSize / 2.0) / TEX_SIZE;
+    
+    const oldTarget = renderer.getRenderTarget();
+    const paintQuad = paintScene.children[0];
 
-    if (window.PaintTools && window.PaintTools[currentTool]) {
+    if (currentTool === 'brush' || currentTool === 'eraser') {
+        renderer.setRenderTarget(activeLayer.rt);
+        
+        paintQuad.material = brushMaterial;
+        brushMaterial.uniforms.uCenter.value = uCenter;
+        brushMaterial.uniforms.uRadius.value = uRadius;
+        brushMaterial.uniforms.uIntensity.value = sInt / 100.0;
+        brushMaterial.uniforms.uHardness.value = sHard / 100.0;
+        
         if (currentTool === 'brush') {
-            dirtyRect = window.PaintTools['brush'](targetCtx, x, y, sSize, 100, sHard, currentColor);
-        } else if (currentTool === 'eraser') {
-            dirtyRect = window.PaintTools['eraser'](targetCtx, x, y, sSize, 100, sHard);
-        } else if (currentTool === 'blur') {
-            dirtyRect = window.PaintTools['blur'](targetCtx, x, y, sSize, sInt, sHard, activeLayer.canvas);
-        } else if (currentTool === 'smear') {
-            dirtyRect = window.PaintTools['smear'](targetCtx, x, y, sSize, sInt, sHard, activeLayer.canvas);
+            brushMaterial.uniforms.uColor.value.set(currentColor);
+            brushMaterial.blending = THREE.CustomBlending;
+            brushMaterial.blendEquation = THREE.AddEquation;
+            brushMaterial.blendSrc = THREE.OneFactor;
+            brushMaterial.blendDst = THREE.OneMinusSrcAlphaFactor;
+            brushMaterial.blendSrcAlpha = THREE.OneFactor;
+            brushMaterial.blendDstAlpha = THREE.OneMinusSrcAlphaFactor;
+        } else {
+            brushMaterial.uniforms.uColor.value.set(0xffffff);
+            brushMaterial.blending = THREE.CustomBlending;
+            brushMaterial.blendEquation = THREE.AddEquation;
+            brushMaterial.blendSrc = THREE.ZeroFactor;
+            brushMaterial.blendDst = THREE.OneMinusSrcAlphaFactor;
+            brushMaterial.blendSrcAlpha = THREE.ZeroFactor;
+            brushMaterial.blendDstAlpha = THREE.OneMinusSrcAlphaFactor;
         }
+        
+        renderer.render(paintScene, paintCamera);
+        // We don't need to restore blending since we always set it explicitly above
+        
+    } else if (currentTool === 'blur' || currentTool === 'smear') {
+        // Ping-pong to tempRT
+        renderer.setRenderTarget(tempRT);
+        
+        if (currentTool === 'blur') {
+            paintQuad.material = blurMaterial;
+            blurMaterial.uniforms.tDiffuse.value = activeLayer.rt.texture;
+            blurMaterial.uniforms.uCenter.value = uCenter;
+            blurMaterial.uniforms.uRadius.value = uRadius;
+            blurMaterial.uniforms.uIntensity.value = sInt / 100.0;
+            blurMaterial.uniforms.uHardness.value = sHard / 100.0;
+        } else {
+            paintQuad.material = smearMaterial;
+            smearMaterial.uniforms.tDiffuse.value = activeLayer.rt.texture;
+            smearMaterial.uniforms.uCenter.value = uCenter;
+            smearMaterial.uniforms.uRadius.value = uRadius;
+            smearMaterial.uniforms.uIntensity.value = sInt / 100.0;
+            smearMaterial.uniforms.uHardness.value = sHard / 100.0;
+            
+            const dir = new THREE.Vector2(0, 0);
+            if (oldUvX !== null && oldUvY !== null) {
+                // Direction from previous mouse position to current
+                dir.set(uvX - oldUvX, uvY - oldUvY);
+            }
+            smearMaterial.uniforms.uDirection.value = dir;
+        }
+        
+        renderer.render(paintScene, paintCamera);
+        
+        // Copy back to activeLayer.rt
+        renderer.setRenderTarget(activeLayer.rt);
+        renderer.clear();
+        paintQuad.material = paintMaterial;
+
+        paintMaterial.uniforms.tLayer.value = tempRT.texture;
+        paintMaterial.uniforms.uOpacity.value = 1.0;
+        paintMaterial.blending = THREE.NoBlending; // Direct copy
+        renderer.render(paintScene, paintCamera);
+        paintMaterial.blending = THREE.NormalBlending; // Restore
     }
     
-    if (isStrokeActive && dirtyRect) {
-        if (!strokeDirtyRect) {
-            strokeDirtyRect = { ...dirtyRect };
-        } else {
-            const minX = Math.min(strokeDirtyRect.x, dirtyRect.x);
-            const minY = Math.min(strokeDirtyRect.y, dirtyRect.y);
-            const maxX = Math.max(strokeDirtyRect.x + strokeDirtyRect.w, dirtyRect.x + dirtyRect.w);
-            const maxY = Math.max(strokeDirtyRect.y + strokeDirtyRect.h, dirtyRect.y + dirtyRect.h);
-            strokeDirtyRect = { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
-        }
-    }
-
-    blitLayers(isStrokeActive ? strokeDirtyRect : dirtyRect);
+    renderer.setRenderTarget(oldTarget);
+    blitLayers(); // Composite and update 3D model
 }
 
 function generateUvWireframeCanvas() {
@@ -463,6 +565,10 @@ function generateUvWireframeCanvas() {
 function animate() {
     requestAnimationFrame(animate);
     controls.update();
+    
+    // Explicitly clear before rendering main scene since autoClear is false
+    renderer.setRenderTarget(null);
+    renderer.clear();
     renderer.render(scene, camera);
 }
 

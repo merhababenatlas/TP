@@ -156,10 +156,11 @@ function initUI() {
             const img = new Image();
             img.onload = () => {
                 const targetLayer = targetLayerIndexForImage >= 0 ? layers[targetLayerIndexForImage] : layers[activeLayerIndex];
-                targetLayer.ctx.drawImage(img, 0, 0, TEX_SIZE, TEX_SIZE);
+                renderImageToRT(img, targetLayer.rt);
                 blitLayers();
                 targetLayerIndexForImage = -1; // Reset
                 triggerAutosave();
+                HistoryManager.saveState();
             }
             img.src = evt.target.result;
         };
@@ -206,7 +207,7 @@ function initUI() {
     document.getElementById('btn-export').addEventListener('click', () => {
         const link = document.createElement('a');
         link.download = 'texture.png';
-        link.href = mainCanvas.toDataURL();
+        link.href = getLayerPreviewDataUrl({ rt: mainRT }); // Reuse existing function!
         link.click();
     });
 
@@ -268,11 +269,35 @@ function initUI() {
     colorPicker.addEventListener('input', (e) => { currentColor = e.target.value; });
 }
 
+function decodeFloat16(binary) {
+    const exponent = (binary & 0x7C00) >> 10;
+    const fraction = binary & 0x03FF;
+    return (binary >> 15 ? -1 : 1) * (
+        exponent ?
+        (
+            exponent === 0x1F ?
+            (fraction ? NaN : Infinity) :
+            Math.pow(2, exponent - 15) * (1 + fraction / 0x400)
+        ) :
+        6.103515625e-5 * (fraction / 0x400)
+    );
+}
+
 function updatePickerPreview(uv) {
-    const x = Math.floor(uv.x * TEX_SIZE);
-    const y = Math.floor((1 - uv.y) * TEX_SIZE);
-    const pixel = mainCtx.getImageData(x, y, 1, 1).data;
-    const hex = rgbToHex(pixel[0], pixel[1], pixel[2]);
+    if (!mainRT) return;
+
+    const x = Math.max(0, Math.min(TEX_SIZE - 1, Math.floor(uv.x * TEX_SIZE)));
+    const y = Math.max(0, Math.min(TEX_SIZE - 1, Math.floor(uv.y * TEX_SIZE))); 
+    
+    // mainRT is HalfFloatType, so we must read into a Uint16Array
+    const buffer = new Uint16Array(4);
+    renderer.readRenderTargetPixels(mainRT, x, y, 1, 1, buffer);
+    
+    const r = Math.min(255, Math.max(0, Math.round(decodeFloat16(buffer[0]) * 255)));
+    const g = Math.min(255, Math.max(0, Math.round(decodeFloat16(buffer[1]) * 255)));
+    const b = Math.min(255, Math.max(0, Math.round(decodeFloat16(buffer[2]) * 255)));
+    
+    const hex = rgbToHex(r, g, b);
     previewColor = hex;
     
     const preview = document.getElementById('picker-preview');

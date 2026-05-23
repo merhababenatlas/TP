@@ -14,7 +14,7 @@ function triggerAutosave() {
                 name: l.name,
                 opacity: l.opacity,
                 isVisible: l.isVisible,
-                imageData: l.canvas.toDataURL('image/png')
+                imageData: getLayerPreviewDataUrl(l)
             });
         }
         window.StorageDB.saveProject(currentModelText, layersData)
@@ -23,19 +23,7 @@ function triggerAutosave() {
     }, 1000);
 }
 
-function loadImageToCanvas(dataURL, ctx) {
-    return new Promise(resolve => {
-        if (!dataURL) return resolve();
-        const img = new Image();
-        img.onload = () => {
-            ctx.globalCompositeOperation = 'copy';
-            ctx.drawImage(img, 0, 0);
-            ctx.globalCompositeOperation = 'source-over';
-            resolve();
-        };
-        img.src = dataURL;
-    });
-}
+
 
 // Initialize Application
 async function init() {
@@ -45,21 +33,23 @@ async function init() {
         await window.StorageDB.init();
         const savedData = await window.StorageDB.loadProject();
         
+        initThreeJS(); // MUST be called before initLayers because layers use WebGL!
+
         if (savedData && savedData.layers) {
             await initLayers(savedData.layers);
-            initThreeJS();
             if (savedData.modelText) {
                 currentModelText = savedData.modelText;
                 loadModelFromText(currentModelText, true);
             }
         } else {
             await initLayers();
-            initThreeJS();
         }
     } catch (e) {
         console.error("IndexedDB error:", e);
+        if (typeof renderer === 'undefined') {
+            initThreeJS();
+        }
         await initLayers();
-        initThreeJS();
     }
     
     initTools();
@@ -67,6 +57,10 @@ async function init() {
     
     // Initial Blit
     blitLayers();
+    
+    // Save the initial state so the user can undo their very first action
+    HistoryManager.saveState();
+    
     animate();
 }
 
