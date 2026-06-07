@@ -216,10 +216,30 @@ function initUI() {
     });
 
     document.getElementById('btn-export').addEventListener('click', () => {
+        // Tablet tarafına PNG olarak indir
         const link = document.createElement('a');
         link.download = 'texture.png';
-        link.href = getLayerPreviewDataUrl({ rt: mainRT }); // Reuse existing function!
+        link.href = getLayerPreviewDataUrl({ rt: mainRT }); 
         link.click();
+
+        // Eğer PC'ye (Host) bağlıysa, projeyi PC'ye yedekle
+        if (window.NetworkManager && window.NetworkManager.conn && !window.NetworkManager.isHost) {
+            const layersData = [];
+            for (let i = 0; i < layers.length; i++) {
+                const l = layers[i];
+                layersData.push({
+                    id: l.id,
+                    name: l.name,
+                    opacity: l.opacity,
+                    isVisible: l.isVisible,
+                    imageData: getLayerPreviewDataUrl(l)
+                });
+            }
+            window.NetworkManager.sendMessage('BACKUP_PROJECT', { 
+                projectData: { modelText: currentModelText, layers: layersData } 
+            });
+            alert("Proje dosyası (TP) PC'ye gönderildi.");
+        }
     });
 
     // Slider Elements

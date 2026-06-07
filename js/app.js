@@ -19,12 +19,7 @@ function triggerAutosave() {
         }
         window.StorageDB.saveProject(currentModelText, layersData)
             .then(() => {
-                console.log('Autosaved!');
-                if (window.NetworkManager && window.NetworkManager.conn && !window.NetworkManager.isHost) {
-                    window.NetworkManager.sendMessage('BACKUP_PROJECT', { 
-                        projectData: { modelText: currentModelText, layers: layersData } 
-                    });
-                }
+                console.log('Autosaved locally!');
             })
             .catch(e => console.error('Autosave failed:', e));
     }, 1000);
