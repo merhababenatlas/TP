@@ -305,6 +305,7 @@ function buildLayerDOM(layerObj) {
         e.stopPropagation();
         document.getElementById('texture-preview-image').src = getLayerPreviewDataUrl(layerObj);
         document.getElementById('texture-preview-overlay').classList.remove('hidden');
+        document.body.classList.add('preview-mode-active');
     };
 
     const importBtn = document.createElement('button');

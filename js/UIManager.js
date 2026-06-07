@@ -77,10 +77,12 @@ function initUI() {
 
     document.getElementById('btn-close-preview').addEventListener('click', () => {
         previewOverlay.classList.add('hidden');
+        document.body.classList.remove('preview-mode-active');
     });
     previewOverlay.addEventListener('click', (e) => {
         if (e.target === previewOverlay) {
             previewOverlay.classList.add('hidden');
+            document.body.classList.remove('preview-mode-active');
         }
     });
 

@@ -558,7 +558,9 @@ input[type=color]::-webkit-color-swatch {
     position: relative;
     max-width: 90vw;
     max-height: 90vh;
-    background: #1a1a1a;
+    background: rgba(26, 26, 26, 0.65);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-radius: 12px;
     padding: 20px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
@@ -668,4 +670,9 @@ input[type=color]::-webkit-color-swatch {
     color: #fff;
     padding: 10px;
     background: transparent !important;
+}
+
+/* Texture Preview Focus Mode */
+body.preview-mode-active .panel {
+    display: none !important;
 }
