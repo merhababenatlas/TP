@@ -105,6 +105,9 @@ window.NetworkManager = {
                 // Switch to reference monitor mode
                 document.querySelector('.tools-panel').style.display = 'none';
                 document.querySelector('.actions-panel').style.display = 'none';
+                
+                // Close QR overlay
+                document.getElementById('host-qr-overlay').classList.add('hidden');
             } else {
                 alert("Bilgisayara başarıyla bağlandınız!");
             }
