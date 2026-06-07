@@ -275,12 +275,14 @@ function initUI() {
     // FPS Toggle
     const btnToggleFps = document.getElementById('btn-toggle-fps');
     if (btnToggleFps) {
-        let currentFps = 0; // 0 = unlimited, 1 = 60, 2 = 30
+        let currentFps = 0; // 0 = 30, 1 = 60
         const fpsStates = [
-            { limit: 0, text: '⚡ FPS: Sınırsız' },
-            { limit: 60, text: '⚡ FPS: 60' },
-            { limit: 30, text: '⚡ FPS: 30' }
+            { limit: 30, text: '⚡ FPS: 30' },
+            { limit: 60, text: '⚡ FPS: 60' }
         ];
+        
+        // Initialize default
+        btnToggleFps.innerText = fpsStates[0].text;
         
         btnToggleFps.addEventListener('click', () => {
             currentFps = (currentFps + 1) % fpsStates.length;
@@ -290,6 +292,11 @@ function initUI() {
                 window.setFPSLimit(state.limit);
             }
         });
+        
+        // Call it once on load
+        if (typeof window.setFPSLimit === 'function') {
+            setTimeout(() => window.setFPSLimit(30), 100);
+        }
     }
 
     document.addEventListener('keydown', (e) => {

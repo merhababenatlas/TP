@@ -573,7 +573,7 @@ function generateUvWireframeCanvas() {
     return canvas;
 }
 
-let fpsLimit = 0; // 0 = Sınırsız
+let fpsLimit = 30; // 0 = Sınırsız, default 30
 let fpsClock = new THREE.Clock();
 let fpsDelta = 0;
 

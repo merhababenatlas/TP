@@ -150,6 +150,10 @@ window.NetworkManager = {
                 document.getElementById('host-status').innerText = 'Bağlandı! Tablet kullanıma hazır.';
                 document.getElementById('host-status').style.color = '#4ade80'; // green
                 
+                if (typeof window.showToast === 'function') {
+                    window.showToast("Tablete başarıyla bağlandınız!", 4000, '#4ade80');
+                }
+                
                 // Hide painting related panels, but KEEP actions-panel and layers-panel visible
                 document.querySelector('.tools-panel').style.display = 'none';
                 document.querySelector('.sliders-panel').style.display = 'none';
