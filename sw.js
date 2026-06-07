@@ -1,4 +1,4 @@
-const CACHE_NAME = '3d-texture-painter-v10';
+const CACHE_NAME = '3d-texture-painter-v11';
 
 // Önbelleğe alınacak dosyaların listesi (Uygulama Kabuğu)
 const ASSETS_TO_CACHE = [
@@ -35,7 +35,12 @@ self.addEventListener('install', (event) => {
         caches.open(CACHE_NAME).then((cache) => {
             return Promise.all(
                 ASSETS_TO_CACHE.map(url => {
-                    return cache.add(url).catch(err => {
+                    // GitHub Pages HTTP önbelleğini (10 dk) delmek için cache-busting veya no-store
+                    const request = new Request(url, { cache: 'no-store' });
+                    return fetch(request).then(response => {
+                        if (!response.ok) throw new Error('Network response not ok');
+                        return cache.put(url, response);
+                    }).catch(err => {
                         console.warn('Failed to cache:', url, err);
                     });
                 })
