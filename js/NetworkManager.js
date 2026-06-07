@@ -143,6 +143,27 @@ window.NetworkManager = {
         this.conn.on('open', () => {
             console.log("Connected to peer!");
             
+            this.lastPing = Date.now();
+            if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+            if (this.heartbeatCheck) clearInterval(this.heartbeatCheck);
+            
+            this.heartbeatInterval = setInterval(() => {
+                if (this.conn && this.conn.open) {
+                    this.conn.send({ type: 'PING' });
+                }
+            }, 2000);
+            
+            this.heartbeatCheck = setInterval(() => {
+                if (Date.now() - this.lastPing > 6000) {
+                    console.warn("Heartbeat timeout! Disconnecting...");
+                    if (this.conn) {
+                        this.conn.close();
+                        // Forcing close UI update in case close event doesn't trigger
+                        if (this.conn) this.conn.emit('close'); 
+                    }
+                }
+            }, 3000);
+            
             if (this.isHost) {
                 // We are Host, the other guy is the Tablet
                 localStorage.setItem('lastConnectedTabletId', this.conn.peer);
@@ -187,6 +208,9 @@ window.NetworkManager = {
 
         this.conn.on('close', () => {
             console.log("Connection closed");
+            if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+            if (this.heartbeatCheck) clearInterval(this.heartbeatCheck);
+            
             if (this.isHost) {
                 document.getElementById('host-status').innerText = 'Bağlantı koptu.';
                 document.getElementById('host-status').style.color = '#ef4444'; // red
@@ -205,7 +229,16 @@ window.NetworkManager = {
     },
 
     handleMessage: function(msg) {
+        this.lastPing = Date.now(); // Any incoming message means connection is alive
         try {
+            if (msg.type === 'PING') {
+                if (this.conn && this.conn.open) this.conn.send({ type: 'PONG' });
+                return;
+            }
+            if (msg.type === 'PONG') {
+                return;
+            }
+            
             if (msg.type === 'SYNC_TEXTURE' && this.isHost) {
                 // Received new texture from tablet
                 this.applySyncedTexture(msg.dataUrl);
