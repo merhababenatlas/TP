@@ -153,6 +153,7 @@ function initTools() {
 }
 
 function onPointerDown(event) {
+    if (window.NetworkManager && window.NetworkManager.isHost) return; // Host modunda boyama kapalı
     if (event.button !== 0) return; // Sadece sol tık (0) veya dokunmatiğe izin ver
 
     if (document.activeElement && document.activeElement.tagName === 'INPUT' && document.activeElement.type === 'text') {

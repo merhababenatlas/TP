@@ -101,14 +101,26 @@ window.NetworkManager = {
                 document.getElementById('host-status').innerText = 'Bağlandı! Tablet kullanıma hazır.';
                 document.getElementById('host-status').style.color = '#4ade80'; // green
                 
-                // Switch to reference monitor mode
+                // Hide painting related panels, but KEEP actions-panel (Axes, Lit Mode, etc) visible
                 document.querySelector('.tools-panel').style.display = 'none';
-                document.querySelector('.actions-panel').style.display = 'none';
+                document.querySelector('.sliders-panel').style.display = 'none';
+                document.querySelector('.history-panel').style.display = 'none';
+                document.querySelector('.layers-panel').style.display = 'none';
                 
                 // Close QR overlay
                 document.getElementById('host-qr-overlay').classList.add('hidden');
             } else {
                 alert("Bilgisayara başarıyla bağlandınız!");
+                
+                // İlk bağlantıda tabletin mevcut modelini ve dokusunu PC'ye gönder (Anında senkronizasyon)
+                if (typeof currentModelText !== 'undefined' && currentModelText) {
+                    this.sendMessage('SYNC_MODEL', { modelText: currentModelText });
+                }
+                setTimeout(() => {
+                    if (typeof getLayerPreviewDataUrl === 'function' && typeof mainRT !== 'undefined') {
+                        this.sendMessage('SYNC_TEXTURE', { dataUrl: getLayerPreviewDataUrl({ rt: mainRT }) });
+                    }
+                }, 500); // Modeli yüklemesi için ufak bir gecikme
             }
         });
 

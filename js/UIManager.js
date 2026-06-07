@@ -242,6 +242,13 @@ function initUI() {
         }
     });
 
+    const btnManualRefresh = document.getElementById('btn-manual-refresh');
+    if (btnManualRefresh) {
+        btnManualRefresh.addEventListener('click', () => {
+            window.location.reload(true);
+        });
+    }
+
     // Slider Elements
     const sizeSlider = document.getElementById('size-slider');
     const intensitySlider = document.getElementById('intensity-slider');
