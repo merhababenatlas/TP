@@ -494,7 +494,7 @@ input[type=color]::-webkit-color-swatch {
 
 .custom-confirm-box {
     background: #1a1a1a;
-    border: 1px solid #333;
+    border: none !important;
     border-radius: 12px;
     padding: 24px;
     width: 320px;

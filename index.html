@@ -16,14 +16,20 @@
     <!-- Title Panel (Top Left) -->
     <div class="panel title-panel" id="main-menu-panel">
         <button class="borderless-btn" id="btn-main-menu" style="font-size:16px; font-weight:600; padding: 12px 16px; display: flex; align-items: center; gap: 8px;">
-            Texture Painter <span id="menu-arrow" style="font-size: 12px; transition: transform 0.3s;">▶</span>
+            Texture Painter <span id="menu-arrow" style="font-size: 12px; transition: transform 0.3s;">☰</span>
         </button>
-        <div id="main-menu-content" class="menu-content collapsed">
-            <button class="borderless-btn" id="btn-import-model">📁 Model</button>
-            <button class="borderless-btn" id="btn-export">💾 Kaydet</button>
+    </div>
+
+    <!-- Main Menu Overlay -->
+    <div id="main-menu-overlay" class="hidden" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); z-index:9999; display:flex; justify-content:center; align-items:center; flex-direction:column; backdrop-filter: blur(10px);">
+        <div id="main-menu-content" class="custom-confirm-box" style="display:flex; flex-direction:column; gap:12px; width: 300px;">
+            <h2 style="margin-top:0; color:#fff; margin-bottom: 10px; font-weight: 600;">Menü</h2>
+            <button class="borderless-btn" id="btn-import-model" style="background: rgba(255,255,255,0.1); width: 100%; text-align: center; justify-content: center;">📁 Model Yükle</button>
+            <button class="borderless-btn" id="btn-export" style="background: rgba(255,255,255,0.1); width: 100%; text-align: center; justify-content: center;">💾 Kaydet</button>
             <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 8px 0;">
-            <button class="borderless-btn" id="btn-host-pc" style="color: #4ade80;">💻 PC Olarak Kur (Host)</button>
-            <button class="borderless-btn" id="btn-connect-tablet" style="color: #60a5fa;">📱 Tabletten Bağlan</button>
+            <button class="borderless-btn" id="btn-host-pc" style="background: rgba(74,222,128,0.15); color: #4ade80; width: 100%; text-align: center; justify-content: center;">💻 PC Olarak Kur</button>
+            <button class="borderless-btn" id="btn-connect-tablet" style="background: rgba(96,165,250,0.15); color: #60a5fa; width: 100%; text-align: center; justify-content: center;">📱 Tabletten Bağlan</button>
+            <button id="btn-close-menu" class="btn-cancel" style="margin-top:15px; width:100%; padding: 12px; font-weight: bold; border-radius: 8px; border: none; font-size: 16px;">Kapat</button>
         </div>
     </div>
 
@@ -129,7 +135,7 @@
     <!-- Network UI -->
     <!-- Host QR Modal -->
     <div id="host-qr-overlay" class="hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index: 9999; display:flex; justify-content:center; align-items:center; flex-direction:column;">
-        <div style="background:var(--panel-bg); padding:24px; border-radius:12px; border:1px solid var(--border-color); text-align:center;">
+        <div style="background:var(--panel-bg); padding:24px; border-radius:12px; border:none; text-align:center;">
             <h3 style="margin-top:0; color:#fff;">PC Host Modu</h3>
             <p style="color:#aaa; font-size:14px; max-width:250px;">Tabletten "Tabletten Bağlan" seçeneğine tıklayıp bu QR kodu okutun.</p>
             <div id="qrcode-container" style="background:#fff; padding:16px; border-radius:8px; margin:16px auto; display:inline-block;"></div>
@@ -148,9 +154,10 @@
     </div>
 
     <!-- Update Toast Notification -->
-    <div id="update-toast" class="hidden" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #3b82f6; color: white; padding: 12px 20px; border-radius: 8px; z-index: 10000; display: flex; align-items: center; gap: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
-        <span>Yeni bir sürüm mevcut!</span>
-        <button id="btn-update-app" style="background: white; color: #3b82f6; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer;">Yenile</button>
+    <div id="update-toast" class="hidden" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #3b82f6; color: white; padding: 24px 32px; border-radius: 16px; z-index: 10000; display: flex; flex-direction: column; align-items: center; gap: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); font-size: 18px; text-align: center;">
+        <span style="font-weight: 600;">✨ Yeni Bir Sürüm Mevcut! ✨</span>
+        <span style="font-size: 14px; opacity: 0.9;">Uygulamayı güncellemek için lütfen yenileyin.</span>
+        <button id="btn-update-app" style="background: white; color: #3b82f6; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; transition: transform 0.2s;">Şimdi Yenile</button>
     </div>
 
     <!-- Libraries -->

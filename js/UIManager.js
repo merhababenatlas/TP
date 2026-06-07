@@ -5,14 +5,25 @@
 function initUI() {
     // Main Menu Toggle
     const btnMainMenu = document.getElementById('btn-main-menu');
-    const mainMenuContent = document.getElementById('main-menu-content');
-    const menuArrow = document.getElementById('menu-arrow');
-    btnMainMenu.addEventListener('click', () => {
-        mainMenuContent.classList.toggle('collapsed');
-        if (mainMenuContent.classList.contains('collapsed')) {
-            menuArrow.style.transform = 'rotate(0deg)';
+    const mainMenuOverlay = document.getElementById('main-menu-overlay');
+    const btnCloseMenu = document.getElementById('btn-close-menu');
+    
+    function toggleMainMenu(show) {
+        if (show) {
+            mainMenuOverlay.classList.remove('hidden');
+            document.querySelectorAll('.panel').forEach(p => p.classList.add('hidden'));
         } else {
-            menuArrow.style.transform = 'rotate(90deg)';
+            mainMenuOverlay.classList.add('hidden');
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('hidden'));
+        }
+    }
+
+    btnMainMenu.addEventListener('click', () => toggleMainMenu(true));
+    btnCloseMenu.addEventListener('click', () => toggleMainMenu(false));
+    
+    mainMenuOverlay.addEventListener('click', (e) => {
+        if (e.target === mainMenuOverlay) {
+            toggleMainMenu(false);
         }
     });
 
