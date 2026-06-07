@@ -5,6 +5,7 @@
 function triggerAutosave() {
     if (!window.StorageDB) return;
     if (typeof window.syncLayersToHost === 'function') window.syncLayersToHost();
+    if (typeof window.syncTextureToHost === 'function') window.syncTextureToHost();
     if (autosaveTimeout) clearTimeout(autosaveTimeout);
     autosaveTimeout = setTimeout(() => {
         const layersData = [];
@@ -118,3 +119,13 @@ function showUpdateToast(newWorker) {
 }
 
 window.onload = init;
+
+window.syncTextureToHost = function() {
+    if (window.NetworkManager && window.NetworkManager.conn && !window.NetworkManager.isHost) {
+        if (typeof getLayerPreviewDataUrl === 'function' && typeof mainRT !== 'undefined') {
+            window.NetworkManager.sendMessage('SYNC_TEXTURE', { 
+                dataUrl: getLayerPreviewDataUrl({ rt: mainRT }) 
+            });
+        }
+    }
+};

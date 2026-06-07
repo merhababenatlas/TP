@@ -268,13 +268,6 @@ function onPointerUp(event) {
         
         triggerAutosave();
         HistoryManager.saveState();
-        
-        // Sync texture to PC Host if connected as client
-        if (window.NetworkManager && window.NetworkManager.conn && !window.NetworkManager.isHost) {
-            window.NetworkManager.sendMessage('SYNC_TEXTURE', {
-                dataUrl: getLayerPreviewDataUrl({ rt: mainRT })
-            });
-        }
     }
 
     isDrawing = false;

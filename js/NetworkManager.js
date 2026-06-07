@@ -298,12 +298,6 @@ window.NetworkManager = {
                     blitLayers();
                     triggerAutosave();
                     HistoryManager.saveState();
-                    
-                    if (window.NetworkManager && window.NetworkManager.conn && !window.NetworkManager.isHost) {
-                        window.NetworkManager.sendMessage('SYNC_TEXTURE', {
-                            dataUrl: getLayerPreviewDataUrl({ rt: mainRT })
-                        });
-                    }
                 }
                 img.src = evt.target.result;
             };
