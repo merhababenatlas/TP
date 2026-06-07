@@ -181,8 +181,8 @@ function initUI() {
 
     // Export Button
     // Add Layer Button
-    document.getElementById('btn-add-layer').addEventListener('click', () => {
-        const layerObj = createLayerObj(null, false);
+    document.getElementById('btn-add-layer').addEventListener('click', async () => {
+        const layerObj = await createLayerObj(null, false);
         layers.push(layerObj);
         document.getElementById('layer-list').appendChild(buildLayerDOM(layerObj));
         selectLayer(layers.length - 1);

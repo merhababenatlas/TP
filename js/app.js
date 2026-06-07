@@ -4,6 +4,7 @@
 
 function triggerAutosave() {
     if (!window.StorageDB) return;
+    if (typeof window.syncLayersToHost === 'function') window.syncLayersToHost();
     if (autosaveTimeout) clearTimeout(autosaveTimeout);
     autosaveTimeout = setTimeout(() => {
         const layersData = [];

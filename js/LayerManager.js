@@ -4,6 +4,19 @@
 
 let mainRT = null; // The final merged WebGLRenderTarget
 
+window.syncLayersToHost = function() {
+    if (window.NetworkManager && window.NetworkManager.conn && !window.NetworkManager.isHost) {
+        const meta = layers.map((l, index) => ({
+            id: l.id,
+            name: l.name,
+            opacity: l.opacity,
+            isVisible: l.isVisible,
+            isActive: (index === activeLayerIndex)
+        }));
+        window.NetworkManager.sendMessage('SYNC_LAYERS_META', { layers: meta });
+    }
+};
+
 function renderImageToRT(img, rt) {
     if (!renderer || !paintScene) return;
     const tex = new THREE.Texture(img);

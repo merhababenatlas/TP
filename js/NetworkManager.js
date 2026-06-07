@@ -101,11 +101,10 @@ window.NetworkManager = {
                 document.getElementById('host-status').innerText = 'Bağlandı! Tablet kullanıma hazır.';
                 document.getElementById('host-status').style.color = '#4ade80'; // green
                 
-                // Hide painting related panels, but KEEP actions-panel (Axes, Lit Mode, etc) visible
+                // Hide painting related panels, but KEEP actions-panel and layers-panel visible
                 document.querySelector('.tools-panel').style.display = 'none';
                 document.querySelector('.sliders-panel').style.display = 'none';
                 document.querySelector('.history-panel').style.display = 'none';
-                document.querySelector('.layers-panel').style.display = 'none';
                 
                 // Close QR overlay
                 document.getElementById('host-qr-overlay').classList.add('hidden');
@@ -116,6 +115,7 @@ window.NetworkManager = {
                 if (typeof currentModelText !== 'undefined' && currentModelText) {
                     this.sendMessage('SYNC_MODEL', { modelText: currentModelText });
                 }
+                if (typeof window.syncLayersToHost === 'function') window.syncLayersToHost();
                 setTimeout(() => {
                     if (typeof getLayerPreviewDataUrl === 'function' && typeof mainRT !== 'undefined') {
                         this.sendMessage('SYNC_TEXTURE', { dataUrl: getLayerPreviewDataUrl({ rt: mainRT }) });
@@ -158,6 +158,67 @@ window.NetworkManager = {
                 // Received model update from tablet
                 if (typeof loadModelFromText === 'function') {
                     loadModelFromText(msg.modelText, true);
+                }
+            }
+            else if (msg.type === 'SYNC_LAYERS_META' && this.isHost) {
+                const listEl = document.getElementById('layer-list');
+                if (listEl) {
+                    listEl.innerHTML = '';
+                    msg.layers.forEach(meta => {
+                        const itemEl = document.createElement('div');
+                        itemEl.className = 'layer-item';
+                        if (meta.isActive) itemEl.classList.add('active');
+                        
+                        const header = document.createElement('div');
+                        header.className = 'layer-header';
+                        
+                        const nameEl = document.createElement('input');
+                        nameEl.type = 'text';
+                        nameEl.className = 'layer-name-input';
+                        nameEl.value = meta.name;
+                        header.appendChild(nameEl);
+                        
+                        const actionsRow = document.createElement('div');
+                        actionsRow.className = 'layer-actions-row';
+                        
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'btn-remove-layer layer-import-btn'; 
+                        removeBtn.innerText = '🗑️';
+                        
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'btn-clear-layer layer-import-btn';
+                        deleteBtn.innerText = '🧹';
+                        
+                        const previewBtn = document.createElement('button');
+                        previewBtn.className = 'btn-preview-layer layer-import-btn';
+                        previewBtn.innerText = meta.isVisible ? '👁️' : '🙈';
+                        
+                        const importBtn = document.createElement('button');
+                        importBtn.className = 'btn-import-layer layer-import-btn';
+                        importBtn.innerText = '🖼️';
+                        
+                        actionsRow.appendChild(removeBtn);
+                        actionsRow.appendChild(deleteBtn);
+                        actionsRow.appendChild(previewBtn);
+                        actionsRow.appendChild(importBtn);
+                        
+                        const opacityRow = document.createElement('div');
+                        opacityRow.className = 'layer-opacity-row';
+                        
+                        const opacitySlider = document.createElement('input');
+                        opacitySlider.type = 'range';
+                        opacitySlider.min = '0';
+                        opacitySlider.max = '100';
+                        opacitySlider.value = meta.opacity;
+                        
+                        opacityRow.appendChild(opacitySlider);
+                        
+                        itemEl.appendChild(header);
+                        itemEl.appendChild(actionsRow);
+                        itemEl.appendChild(opacityRow);
+                        
+                        listEl.appendChild(itemEl);
+                    });
                 }
             }
         } catch(e) {
