@@ -5,6 +5,8 @@ window.NetworkManager = {
     qrScanner: null,
 
     init: function() {
+        this.initPersistentPeer();
+        
         document.getElementById('btn-host-pc').addEventListener('click', () => this.startHostMode());
         document.getElementById('btn-connect-tablet').addEventListener('click', () => this.startClientMode());
         
@@ -26,94 +28,106 @@ window.NetworkManager = {
         this.setupDragAndDrop();
     },
 
-    startHostMode: function() {
-        this.isHost = true;
-        document.getElementById('host-qr-overlay').classList.remove('hidden');
-        document.getElementById('host-status').innerText = 'Bağlantı bekleniyor...';
-        document.getElementById('host-status').style.color = '#fbbf24'; // yellow
-        document.getElementById('qrcode-container').innerHTML = '';
-
-        // Check for persistent Host Peer ID to allow Quick Connect from tablets
-        let peerId = localStorage.getItem('myHostPeerId');
+    initPersistentPeer: function() {
+        let peerId = localStorage.getItem('myPersistentPeerId');
         if (!peerId) {
-            peerId = 'tp-host-' + Math.random().toString(36).substr(2, 9);
-            localStorage.setItem('myHostPeerId', peerId);
+            peerId = localStorage.getItem('myHostPeerId') || ('tp-node-' + Math.random().toString(36).substr(2, 9));
+            localStorage.setItem('myPersistentPeerId', peerId);
         }
         
+        if (this.peer) this.peer.destroy();
         this.peer = new Peer(peerId);
-
-        this.peer.on('open', (id) => {
-            // Generate QR Code
-            new QRCode(document.getElementById('qrcode-container'), {
-                text: id,
-                width: 200,
-                height: 200,
-                colorDark : "#000000",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
-            });
-            console.log('My peer ID is: ' + id);
-        });
-
+        
         this.peer.on('connection', (connection) => {
+            const lastHost = localStorage.getItem('lastConnectedHostId');
+            const lastClient = localStorage.getItem('lastConnectedTabletId');
+            
+            if (connection.peer !== lastHost && connection.peer !== lastClient) {
+                console.warn("Rejected unknown connection from: " + connection.peer);
+                if (typeof window.showToast === 'function') {
+                    window.showToast("Bilinmeyen bir cihaz reddedildi.", 4000, '#ef4444');
+                }
+                connection.close();
+                return;
+            }
+            
             this.conn = connection;
+            if (connection.peer === lastClient) this.isHost = true;
+            else if (connection.peer === lastHost) this.isHost = false;
+            
             this.setupConnection();
         });
         
         this.peer.on('error', (err) => {
-            document.getElementById('host-status').innerText = 'Hata: ' + err.type;
-            document.getElementById('host-status').style.color = '#ef4444'; // red
-            console.error(err);
+            console.error("Peer error: ", err);
         });
+    },
+
+    startHostMode: function() {
+        this.isHost = true;
+        document.getElementById('host-qr-overlay').classList.remove('hidden');
+        document.getElementById('host-status').innerText = '⏳ Bağlantı bekleniyor...';
+        document.getElementById('host-status').style.color = '#fbbf24'; // yellow
+        document.getElementById('qrcode-container').innerHTML = '';
+
+        const renderQR = (id) => {
+            document.getElementById('qrcode-container').innerHTML = '';
+            new QRCode(document.getElementById('qrcode-container'), {
+                text: id,
+                width: 200, height: 200,
+                colorDark : "#000000", colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        };
+
+        if (!this.peer.disconnected && !this.peer.destroyed && this.peer.id) {
+            renderQR(this.peer.id);
+        } else {
+            this.peer.on('open', (id) => {
+                renderQR(id);
+            });
+        }
     },
 
     connectToHost: function(hostId) {
         this.isHost = false;
         localStorage.setItem('lastConnectedHostId', hostId);
-        
-        if (this.peer) this.peer.destroy();
-        this.peer = new Peer();
-        
-        this.peer.on('open', (id) => {
-            this.conn = this.peer.connect(hostId);
-            this.setupConnection();
-        });
-        
-        this.peer.on('error', (err) => {
-            if (typeof window.showToast === 'function') {
-                window.showToast("Bağlantı hatası: PC açık değil veya ID değişmiş.", 4000, '#ef4444');
-            }
-        });
+        this.conn = this.peer.connect(hostId);
+        this.setupConnection();
+    },
+
+    connectToTablet: function(tabletId) {
+        this.isHost = true;
+        localStorage.setItem('lastConnectedTabletId', tabletId);
+        this.conn = this.peer.connect(tabletId);
+        this.setupConnection();
     },
 
     startClientMode: function() {
         this.isHost = false;
         document.getElementById('qr-reader-overlay').classList.remove('hidden');
         
-        this.peer = new Peer();
+        if (this.qrScanner) {
+            this.qrScanner.stop().catch(e => console.error(e));
+        }
+        
+        this.qrScanner = new Html5Qrcode("qr-reader");
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
-        this.peer.on('open', (id) => {
-            console.log('Client Peer ID: ' + id);
-            // Start QR Scanner
-            this.qrScanner = new Html5Qrcode("qr-reader");
-            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-
-            this.qrScanner.start({ facingMode: "environment" }, config, (decodedText) => {
-                // QR code scanned!
-                console.log(`Scan result: ${decodedText}`);
-                this.qrScanner.stop().catch(e => console.error(e));
-                document.getElementById('qr-reader-overlay').classList.add('hidden');
-                
-                // Connect to host
-                localStorage.setItem('lastConnectedHostId', decodedText);
-                this.conn = this.peer.connect(decodedText);
-                this.setupConnection();
-                
-            }, (err) => {
-                // Ignore errors (happens every frame it doesn't find a QR)
-            }).catch(err => {
-                console.error(`Error starting scanner: ${err}`);
-            });
+        this.qrScanner.start({ facingMode: "environment" }, config, (decodedText) => {
+            // QR code scanned!
+            this.qrScanner.stop().catch(e => console.error(e));
+            document.getElementById('qr-reader-overlay').classList.add('hidden');
+            
+            // Connect to host
+            localStorage.setItem('lastConnectedHostId', decodedText);
+            this.conn = this.peer.connect(decodedText);
+            this.setupConnection();
+            
+        }, (err) => {
+            // Ignore frame errors
+        }).catch(err => {
+            console.error(`Error starting scanner: ${err}`);
         });
     },
 
@@ -122,6 +136,9 @@ window.NetworkManager = {
             console.log("Connected to peer!");
             
             if (this.isHost) {
+                // We are Host, the other guy is the Tablet
+                localStorage.setItem('lastConnectedTabletId', this.conn.peer);
+                
                 document.getElementById('host-status').innerText = 'Bağlandı! Tablet kullanıma hazır.';
                 document.getElementById('host-status').style.color = '#4ade80'; // green
                 

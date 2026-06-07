@@ -533,10 +533,20 @@ input[type=color]::-webkit-color-swatch {
 }
 
 .btn-cancel {
-    background: #333;
+    background: rgba(255, 255, 255, 0.1);
     color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
-.btn-cancel:hover { background: #444; }
+.btn-cancel:hover { 
+    background: rgba(255, 255, 255, 0.15); 
+    transform: translateY(-1px);
+}
+.btn-cancel:active {
+    transform: translateY(1px);
+}
 
 .btn-danger {
     background: #e74c3c;

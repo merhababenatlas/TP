@@ -573,13 +573,37 @@ function generateUvWireframeCanvas() {
     return canvas;
 }
 
+let fpsLimit = 0; // 0 = Sınırsız
+let fpsClock = new THREE.Clock();
+let fpsDelta = 0;
+
+window.setFPSLimit = function(limit) {
+    fpsLimit = limit;
+};
+
 function animate() {
     requestAnimationFrame(animate);
-    controls.update();
     
-    // Explicitly clear before rendering main scene since autoClear is false
-    renderer.setRenderTarget(null);
-    renderer.clear();
-    renderer.render(scene, camera);
+    if (fpsLimit > 0) {
+        fpsDelta += fpsClock.getDelta();
+        const interval = 1 / fpsLimit;
+        
+        if (fpsDelta > interval) {
+            controls.update();
+            renderer.setRenderTarget(null);
+            renderer.clear();
+            renderer.render(scene, camera);
+            
+            // Eğer çok uzun süre donduysa delta'yı sıfırla ki hızlanma yapmasın
+            if (fpsDelta > interval * 3) fpsDelta = interval;
+            fpsDelta -= interval;
+        }
+    } else {
+        fpsClock.getDelta(); // Sınırsızken bile clock'u temizle
+        controls.update();
+        renderer.setRenderTarget(null);
+        renderer.clear();
+        renderer.render(scene, camera);
+    }
 }
 

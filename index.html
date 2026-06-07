@@ -27,10 +27,19 @@
             <button class="borderless-btn" id="btn-import-model" style="background: rgba(255,255,255,0.1); width: 100%; text-align: center; justify-content: center;">📁 Model Yükle</button>
             <button class="borderless-btn" id="btn-export" style="background: rgba(255,255,255,0.1); width: 100%; text-align: center; justify-content: center;">💾 Kaydet</button>
             <button class="borderless-btn" id="btn-manual-refresh" style="background: rgba(255,255,255,0.1); width: 100%; text-align: center; justify-content: center;">🔄 Yenile</button>
+            <button class="borderless-btn" id="btn-toggle-fps" style="background: rgba(255,255,255,0.1); width: 100%; text-align: center; justify-content: center;">⚡ FPS: Sınırsız</button>
             <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 8px 0;">
             <button class="borderless-btn" id="btn-host-pc" style="background: rgba(74,222,128,0.15); color: #4ade80; width: 100%; text-align: center; justify-content: center;">💻 PC Olarak Kur</button>
-            <button class="borderless-btn" id="btn-connect-tablet" style="background: rgba(96,165,250,0.15); color: #60a5fa; width: 100%; text-align: center; justify-content: center;">📱 Tabletten Bağlan (QR)</button>
-            <button class="borderless-btn hidden" id="btn-quick-connect" style="background: rgba(168,85,247,0.15); color: #a855f7; width: 100%; text-align: center; justify-content: center; margin-top: 4px;">🔗 Son Bilgisayara Hızlı Bağlan</button>
+            <button class="borderless-btn hidden" id="btn-quick-connect-tablet" style="background: rgba(168,85,247,0.15); color: #a855f7; width: 100%; text-align: center; justify-content: center; margin-top: 4px;">🔗 Son Tablete Bağlan</button>
+            
+            <button class="borderless-btn" id="btn-connect-tablet" style="background: rgba(96,165,250,0.15); color: #60a5fa; width: 100%; text-align: center; justify-content: center; margin-top: 8px;">📱 Tabletten Bağlan (QR)</button>
+            <button class="borderless-btn hidden" id="btn-quick-connect" style="background: rgba(168,85,247,0.15); color: #a855f7; width: 100%; text-align: center; justify-content: center; margin-top: 4px;">🔗 Son Bilgisayara Bağlan</button>
+            
+            <div id="connection-status-indicator" style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; font-size: 13px; color: #aaa; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px;">
+                <div id="connection-status-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #ef4444; box-shadow: 0 0 8px #ef4444;"></div>
+                <span id="connection-status-text">Bağlantı Yok</span>
+            </div>
+
             <button id="btn-close-menu" class="btn-cancel" style="margin-top:15px; width:100%; padding: 12px; font-weight: bold; border-radius: 8px; border: none; font-size: 16px;">Kapat</button>
         </div>
     </div>

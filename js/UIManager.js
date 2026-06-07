@@ -33,8 +33,26 @@ function initUI() {
             // Check for last connected host
             const lastHostId = localStorage.getItem('lastConnectedHostId');
             const btnQuick = document.getElementById('btn-quick-connect');
-            if (lastHostId && btnQuick) {
-                btnQuick.classList.remove('hidden');
+            if (lastHostId && btnQuick) btnQuick.classList.remove('hidden');
+            
+            // Check for last connected tablet
+            const lastTabletId = localStorage.getItem('lastConnectedTabletId');
+            const btnQuickTablet = document.getElementById('btn-quick-connect-tablet');
+            if (lastTabletId && btnQuickTablet) btnQuickTablet.classList.remove('hidden');
+            
+            // Update indicator
+            const dot = document.getElementById('connection-status-dot');
+            const text = document.getElementById('connection-status-text');
+            if (window.NetworkManager && window.NetworkManager.conn && window.NetworkManager.conn.open) {
+                dot.style.background = '#4ade80';
+                dot.style.boxShadow = '0 0 8px #4ade80';
+                text.innerText = 'Cihaza Bağlı';
+                text.style.color = '#4ade80';
+            } else {
+                dot.style.background = '#ef4444';
+                dot.style.boxShadow = '0 0 8px #ef4444';
+                text.innerText = 'Bağlantı Yok';
+                text.style.color = '#aaa';
             }
         } else {
             mainMenuOverlay.classList.add('hidden');
@@ -240,9 +258,40 @@ function initUI() {
         });
     }
 
+    const btnQuickConnectTablet = document.getElementById('btn-quick-connect-tablet');
+    if (btnQuickConnectTablet) {
+        btnQuickConnectTablet.addEventListener('click', () => {
+            toggleMainMenu(false);
+            const lastTabletId = localStorage.getItem('lastConnectedTabletId');
+            if (lastTabletId && window.NetworkManager) {
+                window.NetworkManager.connectToTablet(lastTabletId);
+            }
+        });
+    }
+
     document.getElementById('btn-undo').addEventListener('click', () => HistoryManager.undo());
     document.getElementById('btn-redo').addEventListener('click', () => HistoryManager.redo());
     
+    // FPS Toggle
+    const btnToggleFps = document.getElementById('btn-toggle-fps');
+    if (btnToggleFps) {
+        let currentFps = 0; // 0 = unlimited, 1 = 60, 2 = 30
+        const fpsStates = [
+            { limit: 0, text: '⚡ FPS: Sınırsız' },
+            { limit: 60, text: '⚡ FPS: 60' },
+            { limit: 30, text: '⚡ FPS: 30' }
+        ];
+        
+        btnToggleFps.addEventListener('click', () => {
+            currentFps = (currentFps + 1) % fpsStates.length;
+            const state = fpsStates[currentFps];
+            btnToggleFps.innerText = state.text;
+            if (typeof window.setFPSLimit === 'function') {
+                window.setFPSLimit(state.limit);
+            }
+        });
+    }
+
     document.addEventListener('keydown', (e) => {
         const isZ = e.key.toLowerCase() === 'z' || e.code === 'KeyZ';
         const isY = e.key.toLowerCase() === 'y' || e.code === 'KeyY';
