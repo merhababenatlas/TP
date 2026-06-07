@@ -235,20 +235,27 @@ window.NetworkManager = {
     // --- Feature Implementations ---
 
     applySyncedTexture: function(dataUrl) {
-        // Load the image and update mainRT / material
+        // Load the image and update mainRT directly
         const img = new Image();
         img.onload = () => {
-            const tempTex = new THREE.Texture(img);
-            tempTex.needsUpdate = true;
-            tempTex.flipY = false;
-            
-            if (typeof cube !== 'undefined' && cube) {
-                cube.traverse((child) => {
-                    if (child.isMesh && child.material && !child.userData.isWireframeHelper) {
-                        child.material.map = tempTex;
-                        child.material.needsUpdate = true;
-                    }
-                });
+            if (typeof mainRT !== 'undefined' && mainRT) {
+                if (typeof renderImageToRT === 'function') {
+                    renderImageToRT(img, mainRT);
+                }
+            } else {
+                // Fallback for cases where mainRT isn't ready
+                const tempTex = new THREE.Texture(img);
+                tempTex.needsUpdate = true;
+                tempTex.flipY = false;
+                
+                if (typeof cube !== 'undefined' && cube) {
+                    cube.traverse((child) => {
+                        if (child.isMesh && child.material && !child.userData.isWireframeHelper) {
+                            child.material.map = tempTex;
+                            child.material.needsUpdate = true;
+                        }
+                    });
+                }
             }
         };
         img.src = dataUrl;
