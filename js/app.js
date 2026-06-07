@@ -62,6 +62,14 @@ async function init() {
     initTools();
     registerServiceWorker();
     
+    try {
+        if (screen.orientation && screen.orientation.unlock) {
+            screen.orientation.unlock();
+        }
+    } catch(e) {
+        console.log("Orientation unlock not supported or already unlocked.");
+    }
+    
     // Initial Blit
     blitLayers();
     
