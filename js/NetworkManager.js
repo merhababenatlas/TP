@@ -33,8 +33,12 @@ window.NetworkManager = {
         document.getElementById('host-status').style.color = '#fbbf24'; // yellow
         document.getElementById('qrcode-container').innerHTML = '';
 
-        // Generate a random Peer ID
-        const peerId = 'tp-host-' + Math.random().toString(36).substr(2, 9);
+        // Check for persistent Host Peer ID to allow Quick Connect from tablets
+        let peerId = localStorage.getItem('myHostPeerId');
+        if (!peerId) {
+            peerId = 'tp-host-' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('myHostPeerId', peerId);
+        }
         
         this.peer = new Peer(peerId);
 
@@ -63,6 +67,25 @@ window.NetworkManager = {
         });
     },
 
+    connectToHost: function(hostId) {
+        this.isHost = false;
+        localStorage.setItem('lastConnectedHostId', hostId);
+        
+        if (this.peer) this.peer.destroy();
+        this.peer = new Peer();
+        
+        this.peer.on('open', (id) => {
+            this.conn = this.peer.connect(hostId);
+            this.setupConnection();
+        });
+        
+        this.peer.on('error', (err) => {
+            if (typeof window.showToast === 'function') {
+                window.showToast("Bağlantı hatası: PC açık değil veya ID değişmiş.", 4000, '#ef4444');
+            }
+        });
+    },
+
     startClientMode: function() {
         this.isHost = false;
         document.getElementById('qr-reader-overlay').classList.remove('hidden');
@@ -82,6 +105,7 @@ window.NetworkManager = {
                 document.getElementById('qr-reader-overlay').classList.add('hidden');
                 
                 // Connect to host
+                localStorage.setItem('lastConnectedHostId', decodedText);
                 this.conn = this.peer.connect(decodedText);
                 this.setupConnection();
                 

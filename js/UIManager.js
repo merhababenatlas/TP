@@ -29,6 +29,13 @@ function initUI() {
         if (show) {
             mainMenuOverlay.classList.remove('hidden');
             document.querySelectorAll('.panel').forEach(p => p.classList.add('hidden'));
+            
+            // Check for last connected host
+            const lastHostId = localStorage.getItem('lastConnectedHostId');
+            const btnQuick = document.getElementById('btn-quick-connect');
+            if (lastHostId && btnQuick) {
+                btnQuick.classList.remove('hidden');
+            }
         } else {
             mainMenuOverlay.classList.add('hidden');
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('hidden'));
@@ -209,6 +216,30 @@ function initUI() {
     });
 
     // History UI
+    document.getElementById('btn-host-pc').addEventListener('click', () => {
+        toggleMainMenu(false);
+        if (window.NetworkManager) window.NetworkManager.startHostMode();
+    });
+
+    document.getElementById('btn-connect-tablet').addEventListener('click', () => {
+        toggleMainMenu(false);
+        if (window.NetworkManager) window.NetworkManager.startClientMode();
+    });
+
+    const btnQuickConnect = document.getElementById('btn-quick-connect');
+    if (btnQuickConnect) {
+        btnQuickConnect.addEventListener('click', () => {
+            toggleMainMenu(false);
+            const lastHostId = localStorage.getItem('lastConnectedHostId');
+            if (lastHostId && window.NetworkManager) {
+                if (typeof window.showToast === 'function') {
+                    window.showToast("Bağlanılıyor...", 2000, '#a855f7');
+                }
+                window.NetworkManager.connectToHost(lastHostId);
+            }
+        });
+    }
+
     document.getElementById('btn-undo').addEventListener('click', () => HistoryManager.undo());
     document.getElementById('btn-redo').addEventListener('click', () => HistoryManager.redo());
     
