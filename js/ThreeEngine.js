@@ -127,10 +127,20 @@ function initThreeJS() {
     raycaster = new THREE.Raycaster();
 
     // Resize Handler
-    window.addEventListener('resize', () => {
+    const handleResize = () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    
+    // Mobil cihazlarda ekran döndürmeyi algılamak için
+    window.addEventListener('orientationchange', () => {
+        // Ekran döndürüldüğünde boyutların güncellenmesi biraz zaman alabilir
+        setTimeout(handleResize, 100);
+        setTimeout(handleResize, 300);
+        setTimeout(handleResize, 600);
     });
 }
 
@@ -257,6 +267,13 @@ function onPointerUp(event) {
         
         triggerAutosave();
         HistoryManager.saveState();
+        
+        // Sync texture to PC Host if connected as client
+        if (window.NetworkManager && window.NetworkManager.conn && !window.NetworkManager.isHost) {
+            window.NetworkManager.sendMessage('SYNC_TEXTURE', {
+                dataUrl: getLayerPreviewDataUrl({ rt: mainRT })
+            });
+        }
     }
 
     isDrawing = false;

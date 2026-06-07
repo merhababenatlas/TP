@@ -1,4 +1,6 @@
-const CACHE_NAME = '3d-texture-painter-v4';
+const CACHE_NAME = '3d-texture-painter-v7';
+
+// Önbelleğe alınacak dosyaların listesi (Uygulama Kabuğu)
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -16,12 +18,18 @@ const ASSETS_TO_CACHE = [
     './js/storage.js',
     './js/globals.js',
     './js/HistoryManager.js',
+    './js/PaintShaders.js',
     './js/LayerManager.js',
     './js/UIManager.js',
     './js/ThreeEngine.js',
-    './checker.jpg'
+    './js/NetworkManager.js',
+    './checker.jpg',
+    'https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js',
+    'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'
 ];
 
+// Kurulum aşaması: Dosyaları önbelleğe al
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
@@ -36,6 +44,7 @@ self.addEventListener('install', (event) => {
     );
 });
 
+// Etkinleştirme aşaması: Eski önbellekleri temizle (Eğer versiyon değişirse)
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((cacheNames) => {
@@ -50,10 +59,18 @@ self.addEventListener('activate', (event) => {
     );
 });
 
+// İstek yakalama: Önce önbelleğe bak, yoksa ağdan çek
 self.addEventListener('fetch', (event) => {
     event.respondWith(
         caches.match(event.request).then((response) => {
             return response || fetch(event.request);
         })
     );
+});
+
+// Güncelleme için beklemeyi atla
+self.addEventListener('message', (event) => {
+    if (event.data === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
 });

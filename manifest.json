@@ -5,7 +5,7 @@
   "display": "standalone",
   "background_color": "#121212",
   "theme_color": "#121212",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "icons": [
     {
       "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='192' height='192'><rect width='192' height='192' fill='%23121212'/><text x='50%' y='50%' font-size='64' text-anchor='middle' alignment-baseline='middle' fill='%23e0e0e0'>🎨</text></svg>",

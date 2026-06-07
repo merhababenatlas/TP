@@ -18,7 +18,14 @@ function triggerAutosave() {
             });
         }
         window.StorageDB.saveProject(currentModelText, layersData)
-            .then(() => console.log('Autosaved!'))
+            .then(() => {
+                console.log('Autosaved!');
+                if (window.NetworkManager && window.NetworkManager.conn && !window.NetworkManager.isHost) {
+                    window.NetworkManager.sendMessage('BACKUP_PROJECT', { 
+                        projectData: { modelText: currentModelText, layers: layersData } 
+                    });
+                }
+            })
             .catch(e => console.error('Autosave failed:', e));
     }, 1000);
 }
@@ -66,15 +73,44 @@ async function init() {
 
 function registerServiceWorker() {
     if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
+        let refreshing = false;
+
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (refreshing) return;
+            refreshing = true;
+            window.location.reload();
+        });
+
         navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('SW Registered', reg))
+            .then(reg => {
+                console.log('SW Registered', reg);
+                
+                // Sürüm güncellemesi varsa kullanıcıyı uyar
+                reg.addEventListener('updatefound', () => {
+                    const newWorker = reg.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            showUpdateToast(newWorker);
+                        }
+                    });
+                });
+            })
             .catch(err => console.error('SW Error', err));
     } else if (window.location.protocol === 'file:') {
         console.warn('Service workers are disabled on the file:// protocol. Please use a local web server to enable caching.');
     }
 }
 
-window.onload = init;
+function showUpdateToast(newWorker) {
+    const toast = document.getElementById('update-toast');
+    const btn = document.getElementById('btn-update-app');
+    if (toast && btn) {
+        toast.classList.remove('hidden');
+        btn.onclick = () => {
+            toast.classList.add('hidden');
+            newWorker.postMessage('SKIP_WAITING');
+        };
+    }
+}
 
-// Custom Confirm UI
 window.onload = init;
