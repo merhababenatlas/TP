@@ -89,7 +89,6 @@ window.NetworkManager = {
                 // Ignore errors (happens every frame it doesn't find a QR)
             }).catch(err => {
                 console.error(`Error starting scanner: ${err}`);
-                alert("Kamera başlatılamadı. Lütfen kamera izni verin.");
             });
         });
     },
@@ -143,6 +142,12 @@ window.NetworkManager = {
                 // Received backup request from tablet
                 this.saveBackup(msg.projectData);
             }
+            else if (msg.type === 'SYNC_MODEL' && this.isHost) {
+                // Received model update from tablet
+                if (typeof loadModelFromText === 'function') {
+                    loadModelFromText(msg.modelText, true);
+                }
+            }
         } catch(e) {
             console.error("Error handling message: ", e);
         }
@@ -186,6 +191,11 @@ window.NetworkManager = {
             reader.onload = function(evt) {
                 try {
                     loadModelFromText(evt.target.result);
+                    if (window.NetworkManager && window.NetworkManager.conn && !window.NetworkManager.isHost) {
+                        window.NetworkManager.sendMessage('SYNC_MODEL', {
+                            modelText: currentModelText
+                        });
+                    }
                 } catch (err) {
                     console.error("Model load error:", err);
                 }
@@ -208,6 +218,12 @@ window.NetworkManager = {
                     blitLayers();
                     triggerAutosave();
                     HistoryManager.saveState();
+                    
+                    if (window.NetworkManager && window.NetworkManager.conn && !window.NetworkManager.isHost) {
+                        window.NetworkManager.sendMessage('SYNC_TEXTURE', {
+                            dataUrl: getLayerPreviewDataUrl({ rt: mainRT })
+                        });
+                    }
                 }
                 img.src = evt.target.result;
             };
