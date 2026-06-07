@@ -18,7 +18,9 @@ window.NetworkManager = {
         document.getElementById('btn-close-reader').addEventListener('click', () => {
             document.getElementById('qr-reader-overlay').classList.add('hidden');
             if (this.qrScanner) {
-                this.qrScanner.stop().catch(e => console.error(e));
+                this.qrScanner.stop().then(() => {
+                    this.qrScanner.clear();
+                }).catch(e => console.error(e));
                 this.qrScanner = null;
             }
         });
@@ -41,7 +43,10 @@ window.NetworkManager = {
             const lastHost = localStorage.getItem('lastConnectedHostId');
             const lastClient = localStorage.getItem('lastConnectedTabletId');
             
-            if (connection.peer !== lastHost && connection.peer !== lastClient) {
+            const qrModal = document.getElementById('host-qr-overlay');
+            const isPairingMode = qrModal && !qrModal.classList.contains('hidden');
+            
+            if (connection.peer !== lastHost && connection.peer !== lastClient && !isPairingMode) {
                 console.warn("Rejected unknown connection from: " + connection.peer);
                 if (typeof window.showToast === 'function') {
                     window.showToast("Bilinmeyen bir cihaz reddedildi.", 4000, '#ef4444');
@@ -117,7 +122,9 @@ window.NetworkManager = {
 
         this.qrScanner.start({ facingMode: "environment" }, config, (decodedText) => {
             // QR code scanned!
-            this.qrScanner.stop().catch(e => console.error(e));
+            this.qrScanner.stop().then(() => {
+                this.qrScanner.clear();
+            }).catch(e => console.error(e));
             document.getElementById('qr-reader-overlay').classList.add('hidden');
             
             // Connect to host
