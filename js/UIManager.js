@@ -2,6 +2,23 @@
 /// UI Events & Helpers
 /// </summary>
 
+window.showToast = function(message, duration = 3000, color = '#4ade80') {
+    const toast = document.getElementById('notification-toast');
+    const text = document.getElementById('notification-text');
+    if (!toast || !text) return;
+    
+    text.innerText = message;
+    text.style.color = color;
+    toast.classList.remove('hidden');
+    toast.style.opacity = '1';
+    
+    if (window.toastTimeout) clearTimeout(window.toastTimeout);
+    window.toastTimeout = setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.classList.add('hidden'), 300);
+    }, duration);
+};
+
 function initUI() {
     // Main Menu Toggle
     const btnMainMenu = document.getElementById('btn-main-menu');

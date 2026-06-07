@@ -161,6 +161,11 @@
         <button id="btn-update-app" style="background: white; color: #3b82f6; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; transition: transform 0.2s;">Şimdi Yenile</button>
     </div>
 
+    <!-- Generic Toast Notification -->
+    <div id="notification-toast" class="hidden" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); color: white; padding: 12px 24px; border-radius: 12px; z-index: 10000; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); font-size: 15px; font-weight: 600; text-align: center; backdrop-filter: blur(10px); transition: opacity 0.3s ease; opacity: 0; pointer-events: none;">
+        <span id="notification-text"></span>
+    </div>
+
     <!-- Libraries -->
     <!-- PeerJS for WebRTC -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>

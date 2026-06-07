@@ -109,7 +109,11 @@ window.NetworkManager = {
                 // Close QR overlay
                 document.getElementById('host-qr-overlay').classList.add('hidden');
             } else {
-                alert("Bilgisayara başarıyla bağlandınız!");
+                if (typeof window.showToast === 'function') {
+                    window.showToast("Bilgisayara başarıyla bağlandınız!", 4000, '#4ade80');
+                } else {
+                    alert("Bilgisayara başarıyla bağlandınız!");
+                }
                 
                 // İlk bağlantıda tabletin mevcut modelini ve dokusunu PC'ye gönder (Anında senkronizasyon)
                 if (typeof currentModelText !== 'undefined' && currentModelText) {
@@ -133,8 +137,15 @@ window.NetworkManager = {
             if (this.isHost) {
                 document.getElementById('host-status').innerText = 'Bağlantı koptu.';
                 document.getElementById('host-status').style.color = '#ef4444'; // red
+                if (typeof window.showToast === 'function') {
+                    window.showToast("Tablet ile bağlantı koptu.", 4000, '#ef4444');
+                }
             } else {
-                alert("Bilgisayar ile bağlantı koptu.");
+                if (typeof window.showToast === 'function') {
+                    window.showToast("Bilgisayar ile bağlantı koptu.", 4000, '#ef4444');
+                } else {
+                    alert("Bilgisayar ile bağlantı koptu.");
+                }
             }
             this.conn = null;
         });
