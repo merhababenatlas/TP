@@ -12,8 +12,7 @@ window.NetworkManager = {
         
         document.getElementById('btn-close-host').addEventListener('click', () => {
             document.getElementById('host-qr-overlay').classList.add('hidden');
-            if (this.peer) this.peer.destroy();
-            this.peer = null;
+            // Kalıcı peer arka planda yaşamaya devam etmeli, destroy() kaldırıldı.
         });
 
         document.getElementById('btn-close-reader').addEventListener('click', () => {
@@ -70,6 +69,13 @@ window.NetworkManager = {
         document.getElementById('host-status').style.color = '#fbbf24'; // yellow
         document.getElementById('qrcode-container').innerHTML = '';
 
+        // Peer kopmuşsa veya yoksa yeniden bağla
+        if (this.peer && this.peer.disconnected) {
+            this.peer.reconnect();
+        } else if (!this.peer || this.peer.destroyed) {
+            this.initPersistentPeer();
+        }
+
         const renderQR = (id) => {
             document.getElementById('qrcode-container').innerHTML = '';
             new QRCode(document.getElementById('qrcode-container'), {
@@ -80,13 +86,8 @@ window.NetworkManager = {
             });
         };
 
-        if (!this.peer.disconnected && !this.peer.destroyed && this.peer.id) {
-            renderQR(this.peer.id);
-        } else {
-            this.peer.on('open', (id) => {
-                renderQR(id);
-            });
-        }
+        // ID'miz zaten belli olduğu için doğrudan QR üretiyoruz
+        renderQR(localStorage.getItem('myPersistentPeerId'));
     },
 
     connectToHost: function(hostId) {
