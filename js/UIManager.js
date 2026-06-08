@@ -185,6 +185,20 @@ function initUI() {
         });
     }
 
+    // Wire Color Picker
+    const wireColorPicker = document.getElementById('wire-color-picker');
+    if (wireColorPicker) {
+        wireColorPicker.addEventListener('input', (e) => {
+            if (window.setWireframeColor) {
+                window.setWireframeColor(e.target.value);
+            }
+            const uvImg = document.getElementById('uv-wireframe-image');
+            if (uvImg && !uvImg.classList.contains('hidden') && window.generateUvWireframeCanvas) {
+                uvImg.src = window.generateUvWireframeCanvas().toDataURL('image/png');
+            }
+        });
+    }
+
     // Import Model
     const btnImportModel = document.getElementById('btn-import-model');
     const fileImportModel = document.getElementById('file-import-model');

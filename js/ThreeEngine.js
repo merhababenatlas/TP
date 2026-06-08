@@ -415,7 +415,7 @@ function applyWireframeMode() {
                 
                 const wireframeGeometry = new THREE.WireframeGeometry(child.geometry);
                 const wireframeMaterial = new THREE.LineBasicMaterial({
-                    color: 0x00ff00,
+                    color: window.wireframeColor,
                     depthTest: true,
                     opacity: 0.5,
                     transparent: true
@@ -430,7 +430,7 @@ function applyWireframeMode() {
                 
                 const wireframeGeometry = new THREE.WireframeGeometry(child.geometry);
                 const wireframeMaterial = new THREE.LineBasicMaterial({
-                    color: 0x00ff00,
+                    color: window.wireframeColor,
                     depthTest: true,
                     opacity: 0.5,
                     transparent: true
@@ -542,7 +542,12 @@ function generateUvWireframeCanvas() {
     const ctx = canvas.getContext('2d');
     
     ctx.clearRect(0, 0, TEX_SIZE, TEX_SIZE);
-    ctx.strokeStyle = 'rgba(0, 255, 0, 0.6)';
+    
+    const r = (window.wireframeColor >> 16) & 255;
+    const g = (window.wireframeColor >> 8) & 255;
+    const b = window.wireframeColor & 255;
+    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.6)`;
+    
     ctx.lineWidth = 1;
     
     if (!cube) return canvas;
@@ -598,6 +603,19 @@ window.setFPSLimit = function(limit) {
     fpsLimit = limit;
 };
 
+window.wireframeColor = 0x00ff00;
+
+window.setWireframeColor = function(hexStr) {
+    window.wireframeColor = parseInt(hexStr.replace('#', '0x'), 16);
+    if (cube) {
+        cube.traverse((child) => {
+            if (child.isLineSegments && child.userData.isWireframeHelper && child.material) {
+                child.material.color.setHex(window.wireframeColor);
+            }
+        });
+    }
+};
+
 window.setBackgroundColor = function(hexColor) {
     if (renderer && scene) {
         renderer.setClearColor(hexColor, 1);
@@ -632,3 +650,4 @@ function animate() {
     }
 }
 
+window.generateUvWireframeCanvas = generateUvWireframeCanvas;
