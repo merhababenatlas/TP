@@ -406,10 +406,27 @@ function applyWireframeMode() {
 
             if (wireframeMode === 0) {
                 child.material.wireframe = false;
+                child.material.colorWrite = true;
+                child.material.depthWrite = true;
             } else if (wireframeMode === 1) {
-                child.material.wireframe = true;
+                child.material.wireframe = false;
+                child.material.colorWrite = false;
+                child.material.depthWrite = false;
+                
+                const wireframeGeometry = new THREE.WireframeGeometry(child.geometry);
+                const wireframeMaterial = new THREE.LineBasicMaterial({
+                    color: 0x00ff00,
+                    depthTest: true,
+                    opacity: 0.5,
+                    transparent: true
+                });
+                const line = new THREE.LineSegments(wireframeGeometry, wireframeMaterial);
+                line.userData.isWireframeHelper = true;
+                child.add(line);
             } else if (wireframeMode === 2) {
                 child.material.wireframe = false;
+                child.material.colorWrite = true;
+                child.material.depthWrite = true;
                 
                 const wireframeGeometry = new THREE.WireframeGeometry(child.geometry);
                 const wireframeMaterial = new THREE.LineBasicMaterial({
