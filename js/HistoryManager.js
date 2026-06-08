@@ -60,6 +60,8 @@ const HistoryManager = {
         if (this.currentIndex > 0) {
             this.currentIndex--;
             this.restoreState(this.states[this.currentIndex]);
+        } else {
+            console.log("Undo: No more history");
         }
         this.updateUI();
     },
@@ -68,6 +70,8 @@ const HistoryManager = {
         if (this.currentIndex < this.states.length - 1) {
             this.currentIndex++;
             this.restoreState(this.states[this.currentIndex]);
+        } else {
+            console.log("Redo: No more future states. Current index:", this.currentIndex, "States:", this.states.length);
         }
         this.updateUI();
     },
@@ -118,7 +122,7 @@ const HistoryManager = {
             
             if (layerObj.id >= maxId) maxId = layerObj.id + 1;
             layers.push(layerObj);
-            layerListEl.appendChild(buildLayerDOM(layerObj));
+            layerListEl.appendChild(window.LayerUIManager.buildLayerDOM(layerObj));
         });
 
         layerIdCounter = Math.max(layerIdCounter, maxId);
@@ -127,6 +131,8 @@ const HistoryManager = {
         triggerAutosave();
     }
 };
+
+window.HistoryManager = HistoryManager;
 
 // Base Background
 // We still need base checkerboard logic in blitLayers, but we'll use a texture instead.
