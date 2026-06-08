@@ -20,6 +20,20 @@ window.showToast = function(message, duration = 3000, color = '#4ade80') {
 };
 
 function initUI() {
+    // Restricted mode global capture
+    const preventRestrictedTouch = (e) => {
+        if (tabletControlMode === 'restricted' && e.pointerType && e.pointerType !== 'pen') {
+            const target = e.target;
+            if (!target) return;
+            if (target.id === 'canvas-container' || target.tagName && target.tagName.toLowerCase() === 'canvas') return;
+            if (target.closest && target.closest('#btn-tablet-mode')) return;
+            e.stopPropagation();
+            e.preventDefault();
+        }
+    };
+    window.addEventListener('pointerdown', preventRestrictedTouch, true);
+    window.addEventListener('pointerup', preventRestrictedTouch, true);
+
     // Main Menu Toggle
     const btnMainMenu = document.getElementById('btn-main-menu');
     const mainMenuOverlay = document.getElementById('main-menu-overlay');
@@ -174,6 +188,26 @@ function initUI() {
             btnAxes.classList.add('wireframe-active');
         }
     });
+
+    // Tablet Mode Toggle
+    const btnTabletMode = document.getElementById('btn-tablet-mode');
+    if (btnTabletMode) {
+        const updateTabletModeBtn = () => {
+            if (tabletControlMode === 'free') btnTabletMode.innerText = '📱 Mod: Serbest';
+            else if (tabletControlMode === 'semi') btnTabletMode.innerText = '📱 Mod: Yarı Serbest';
+            else if (tabletControlMode === 'restricted') btnTabletMode.innerText = '📱 Mod: Kısıtlı';
+        };
+        updateTabletModeBtn();
+        
+        btnTabletMode.addEventListener('click', () => {
+            if (tabletControlMode === 'free') tabletControlMode = 'semi';
+            else if (tabletControlMode === 'semi') tabletControlMode = 'restricted';
+            else tabletControlMode = 'free';
+            
+            localStorage.setItem('tabletControlMode', tabletControlMode);
+            updateTabletModeBtn();
+        });
+    }
 
     // Background Color Picker
     const bgColorPicker = document.getElementById('bg-color-picker');
@@ -415,6 +449,7 @@ function initUI() {
     sizeSlider.addEventListener('input', (e) => {
         if (toolSettings[currentTool]) {
             toolSettings[currentTool].size = parseInt(e.target.value, 10);
+            localStorage.setItem('toolSettings', JSON.stringify(toolSettings));
         }
     });
 
@@ -422,6 +457,7 @@ function initUI() {
     intensitySlider.addEventListener('input', (e) => {
         if (toolSettings[currentTool]) {
             toolSettings[currentTool].intensity = parseInt(e.target.value, 10);
+            localStorage.setItem('toolSettings', JSON.stringify(toolSettings));
         }
     });
 
@@ -429,6 +465,7 @@ function initUI() {
     hardnessSlider.addEventListener('input', (e) => {
         if (toolSettings[currentTool]) {
             toolSettings[currentTool].hardness = parseInt(e.target.value, 10);
+            localStorage.setItem('toolSettings', JSON.stringify(toolSettings));
         }
     });
 

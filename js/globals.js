@@ -7,7 +7,16 @@ const TEX_SIZE = 1024;
 
 // State Variables
 let currentTool = 'brush';
-const toolSettings = {
+
+let tabletControlMode = localStorage.getItem('tabletControlMode') || 'free'; // 'free', 'semi', 'restricted'
+
+let savedToolSettings = null;
+try {
+    const saved = localStorage.getItem('toolSettings');
+    if (saved) savedToolSettings = JSON.parse(saved);
+} catch (e) { console.error('Failed to parse toolSettings', e); }
+
+const toolSettings = savedToolSettings || {
     'brush': { size: 50, intensity: 100, hardness: 50 },
     'eraser': { size: 50, intensity: 100, hardness: 50 },
     'blur': { size: 50, intensity: 50, hardness: 50 },

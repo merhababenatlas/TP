@@ -14,6 +14,13 @@ function onPointerDown(event) {
     if (window.NetworkManager && window.NetworkManager.isHost) return; // Host modunda boyama kapalı
     if (event.button !== 0) return; // Sadece sol tık (0) veya dokunmatiğe izin ver
 
+    // Tablet Kontrol Modu (Yarı Serbest ve Kısıtlı modda sadece kalemle boyama yapılabilir)
+    if ((tabletControlMode === 'semi' || tabletControlMode === 'restricted') && event.pointerType !== 'pen') {
+        // Return without calling preventDefault or stopPropagation. 
+        // This disables drawing, but allows OrbitControls to handle the touch event for camera rotation.
+        return; 
+    }
+
     if (document.activeElement && document.activeElement.tagName === 'INPUT' && document.activeElement.type === 'text') {
         document.activeElement.blur();
     }

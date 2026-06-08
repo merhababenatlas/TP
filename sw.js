@@ -1,4 +1,4 @@
-const CACHE_NAME = '3d-texture-painter-v46';
+const CACHE_NAME = '3d-texture-painter-v47';
 
 // Önbelleğe alınacak dosyaların listesi (Uygulama Kabuğu)
 const ASSETS_TO_CACHE = [
