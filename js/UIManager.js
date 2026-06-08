@@ -252,7 +252,7 @@ function initUI() {
     document.getElementById('btn-add-layer').addEventListener('click', async () => {
         const layerObj = await createLayerObj(null, false);
         layers.push(layerObj);
-        document.getElementById('layer-list').appendChild(buildLayerDOM(layerObj));
+        window.LayerUIManager.addLayerToUI(layerObj);
         selectLayer(layers.length - 1);
         blitLayers();
         triggerAutosave();

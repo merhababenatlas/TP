@@ -258,64 +258,8 @@ window.NetworkManager = {
                 }
             }
             else if (msg.type === 'SYNC_LAYERS_META' && this.isHost) {
-                const listEl = document.getElementById('layer-list');
-                if (listEl) {
-                    listEl.innerHTML = '';
-                    msg.layers.forEach(meta => {
-                        const itemEl = document.createElement('div');
-                        itemEl.className = 'layer-item';
-                        if (meta.isActive) itemEl.classList.add('active');
-                        
-                        const header = document.createElement('div');
-                        header.className = 'layer-header';
-                        
-                        const nameEl = document.createElement('input');
-                        nameEl.type = 'text';
-                        nameEl.className = 'layer-name-input';
-                        nameEl.value = meta.name;
-                        header.appendChild(nameEl);
-                        
-                        const actionsRow = document.createElement('div');
-                        actionsRow.className = 'layer-actions-row';
-                        
-                        const removeBtn = document.createElement('button');
-                        removeBtn.className = 'btn-remove-layer layer-import-btn'; 
-                        removeBtn.innerText = '🗑️';
-                        
-                        const deleteBtn = document.createElement('button');
-                        deleteBtn.className = 'btn-clear-layer layer-import-btn';
-                        deleteBtn.innerText = '🧹';
-                        
-                        const previewBtn = document.createElement('button');
-                        previewBtn.className = 'btn-preview-layer layer-import-btn';
-                        previewBtn.innerText = meta.isVisible ? '👁️' : '🙈';
-                        
-                        const importBtn = document.createElement('button');
-                        importBtn.className = 'btn-import-layer layer-import-btn';
-                        importBtn.innerText = '🖼️';
-                        
-                        actionsRow.appendChild(removeBtn);
-                        actionsRow.appendChild(deleteBtn);
-                        actionsRow.appendChild(previewBtn);
-                        actionsRow.appendChild(importBtn);
-                        
-                        const opacityRow = document.createElement('div');
-                        opacityRow.className = 'layer-opacity-row';
-                        
-                        const opacitySlider = document.createElement('input');
-                        opacitySlider.type = 'range';
-                        opacitySlider.min = '0';
-                        opacitySlider.max = '100';
-                        opacitySlider.value = meta.opacity;
-                        
-                        opacityRow.appendChild(opacitySlider);
-                        
-                        itemEl.appendChild(header);
-                        itemEl.appendChild(actionsRow);
-                        itemEl.appendChild(opacityRow);
-                        
-                        listEl.appendChild(itemEl);
-                    });
+                if (window.LayerUIManager) {
+                    window.LayerUIManager.syncFromMeta(msg.layers);
                 }
             }
         } catch(e) {
@@ -387,7 +331,7 @@ window.NetworkManager = {
                     const layerObj = await createLayerObj(null, false);
                     layerObj.name = filename;
                     layers.push(layerObj);
-                    document.getElementById('layer-list').appendChild(buildLayerDOM(layerObj));
+                    window.LayerUIManager.addLayerToUI(layerObj);
                     selectLayer(layers.length - 1);
                     
                     // Render image to it
