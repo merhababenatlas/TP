@@ -175,6 +175,16 @@ function initUI() {
         }
     });
 
+    // Background Color Picker
+    const bgColorPicker = document.getElementById('bg-color-picker');
+    if (bgColorPicker) {
+        bgColorPicker.addEventListener('input', (e) => {
+            if (window.setBackgroundColor) {
+                window.setBackgroundColor(e.target.value);
+            }
+        });
+    }
+
     // Import Model
     const btnImportModel = document.getElementById('btn-import-model');
     const fileImportModel = document.getElementById('file-import-model');

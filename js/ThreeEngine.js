@@ -598,6 +598,14 @@ window.setFPSLimit = function(limit) {
     fpsLimit = limit;
 };
 
+window.setBackgroundColor = function(hexColor) {
+    if (renderer && scene) {
+        renderer.setClearColor(hexColor, 1);
+        scene.background = new THREE.Color(hexColor);
+    }
+    document.body.style.backgroundColor = hexColor;
+};
+
 function animate() {
     requestAnimationFrame(animate);
     
