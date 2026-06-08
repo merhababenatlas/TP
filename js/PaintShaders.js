@@ -135,5 +135,33 @@ window.PaintShaders = {
             // Multiply both RGB and Alpha by uOpacity to maintain premultiplication
             gl_FragColor = layerColor * uOpacity;
         }
+    `,
+
+    // Premultiply Shader (For loading straight alpha images into premultiplied RTs)
+    premultiplyFragmentShader: `
+        varying vec2 vUv;
+        uniform sampler2D tLayer;
+        uniform float uOpacity;
+
+        void main() {
+            vec4 color = texture2D(tLayer, vUv);
+            // Convert straight alpha to premultiplied alpha
+            gl_FragColor = vec4(color.rgb * color.a * uOpacity, color.a * uOpacity);
+        }
+    `,
+
+    // Unpack Shader (For Double-Wide PNG)
+    unpackFragmentShader: `
+        varying vec2 vUv;
+        uniform sampler2D tPacked;
+        
+        void main() {
+            // Left side (0.0 to 0.5) has RGB, Right side (0.5 to 1.0) has Alpha in R channel
+            vec4 rgbColor = texture2D(tPacked, vec2(vUv.x * 0.5, vUv.y));
+            vec4 alphaColor = texture2D(tPacked, vec2(vUv.x * 0.5 + 0.5, vUv.y));
+            
+            // Reconstruct the exact RGBA that was saved (which is already premultiplied)
+            gl_FragColor = vec4(rgbColor.rgb, alphaColor.r);
+        }
     `
 };

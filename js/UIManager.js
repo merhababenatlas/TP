@@ -362,7 +362,7 @@ function initUI() {
                     name: l.name,
                     opacity: l.opacity,
                     isVisible: l.isVisible,
-                    imageData: getLayerPreviewDataUrl(l)
+                    imageData: window.getLayerDataEncodedUrl ? window.getLayerDataEncodedUrl(l) : getLayerPreviewDataUrl(l)
                 });
             }
             window.NetworkManager.sendMessage('BACKUP_PROJECT', { 

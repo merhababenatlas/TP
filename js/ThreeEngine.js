@@ -65,6 +65,27 @@ function initThreeJS() {
         blending: THREE.NormalBlending
     });
     
+    window.premultiplyMaterial = new THREE.ShaderMaterial({
+        vertexShader: window.PaintShaders.vertexShader,
+        fragmentShader: window.PaintShaders.premultiplyFragmentShader,
+        uniforms: {
+            tLayer: { value: null },
+            uOpacity: { value: 1.0 }
+        },
+        transparent: true,
+        blending: THREE.NoBlending
+    });
+
+    window.unpackMaterial = new THREE.ShaderMaterial({
+        vertexShader: window.PaintShaders.vertexShader,
+        fragmentShader: window.PaintShaders.unpackFragmentShader,
+        uniforms: {
+            tPacked: { value: null }
+        },
+        transparent: true,
+        blending: THREE.NoBlending
+    });
+    
     blurMaterial = new THREE.ShaderMaterial({
         vertexShader: window.PaintShaders.vertexShader,
         fragmentShader: window.PaintShaders.blurFragmentShader,

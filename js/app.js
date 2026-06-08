@@ -16,7 +16,7 @@ function triggerAutosave() {
                 name: l.name,
                 opacity: l.opacity,
                 isVisible: l.isVisible,
-                imageData: getLayerPreviewDataUrl(l)
+                imageData: window.getLayerDataEncodedUrl ? window.getLayerDataEncodedUrl(l) : getLayerPreviewDataUrl(l)
             });
         }
         window.StorageDB.saveProject(currentModelText, layersData)
@@ -26,8 +26,6 @@ function triggerAutosave() {
             .catch(e => console.error('Autosave failed:', e));
     }, 1000);
 }
-
-
 
 // Initialize Application
 async function init() {
@@ -122,9 +120,9 @@ window.onload = init;
 
 window.syncTextureToHost = function() {
     if (window.NetworkManager && window.NetworkManager.conn && !window.NetworkManager.isHost) {
-        if (typeof getLayerPreviewDataUrl === 'function' && typeof mainRT !== 'undefined') {
+        if (typeof window.getLayerDataEncodedUrl === 'function' && typeof mainRT !== 'undefined') {
             window.NetworkManager.sendMessage('SYNC_TEXTURE', { 
-                dataUrl: getLayerPreviewDataUrl({ rt: mainRT }) 
+                dataUrl: window.getLayerDataEncodedUrl({ rt: mainRT }) 
             });
         }
     }

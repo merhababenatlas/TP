@@ -175,7 +175,7 @@ window.LayerUIManager = {
         importBtn.onclick = (e) => {
             e.stopPropagation();
             // Assuming targetLayerIndexForImage is global in UIManager
-            window.targetLayerIndexForImage = layers.indexOf(layerObj);
+            targetLayerIndexForImage = layers.indexOf(layerObj);
             const fileImportImage = document.getElementById('file-import-image');
             if (fileImportImage) fileImportImage.click();
         };

@@ -195,8 +195,8 @@ window.NetworkManager = {
                 }
                 if (typeof window.syncLayersToHost === 'function') window.syncLayersToHost();
                 setTimeout(() => {
-                    if (typeof getLayerPreviewDataUrl === 'function' && typeof mainRT !== 'undefined') {
-                        this.sendMessage('SYNC_TEXTURE', { dataUrl: getLayerPreviewDataUrl({ rt: mainRT }) });
+                    if (typeof window.getLayerDataEncodedUrl === 'function' && typeof mainRT !== 'undefined') {
+                        this.sendMessage('SYNC_TEXTURE', { dataUrl: window.getLayerDataEncodedUrl({ rt: mainRT }) });
                     }
                 }, 500); // Modeli yüklemesi için ufak bir gecikme
             }
@@ -280,8 +280,12 @@ window.NetworkManager = {
         const img = new Image();
         img.onload = () => {
             if (typeof mainRT !== 'undefined' && mainRT) {
-                if (typeof renderImageToRT === 'function') {
-                    renderImageToRT(img, mainRT);
+                if (typeof window.renderPackedImageToRT === 'function') {
+                    if (img.width === window.TEX_SIZE * 2) {
+                        window.renderPackedImageToRT(img, mainRT);
+                    } else {
+                        renderImageToRT(img, mainRT);
+                    }
                 }
             } else {
                 // Fallback for cases where mainRT isn't ready
@@ -334,10 +338,15 @@ window.NetworkManager = {
                     window.LayerUIManager.addLayerToUI(layerObj);
                     selectLayer(layers.length - 1);
                     
-                    // Render image to it
-                    renderImageToRT(img, layerObj.rt);
-                    blitLayers();
-                    triggerAutosave();
+                    if (img.width === window.TEX_SIZE * 2) {
+                        window.renderPackedImageToRT(img, layerObj.rt);
+                    } else {
+                        renderImageToRT(img, layerObj.rt);
+                    }
+                    if (layerObj.isVisible) {
+                        blitLayers();
+                        triggerAutosave();
+                    }
                     HistoryManager.saveState();
                 }
                 img.src = evt.target.result;
