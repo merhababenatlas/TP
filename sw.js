@@ -1,4 +1,4 @@
-const CACHE_NAME = '3d-texture-painter-v43';
+const CACHE_NAME = '3d-texture-painter-v44';
 
 // Önbelleğe alınacak dosyaların listesi (Uygulama Kabuğu)
 const ASSETS_TO_CACHE = [
@@ -22,6 +22,8 @@ const ASSETS_TO_CACHE = [
     './js/LayerManager.js',
     './js/UIManager.js',
     './js/ThreeEngine.js',
+    './js/ThreeModelManager.js',
+    './js/ThreeToolController.js',
     './js/NetworkManager.js',
     './checker.jpg',
     'https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js',
