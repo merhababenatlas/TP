@@ -25,7 +25,7 @@ function triggerAutosave() {
                 name: l.name,
                 opacity: l.opacity,
                 isVisible: l.isVisible,
-                imageData: window.getLayerDataEncodedUrl ? window.getLayerDataEncodedUrl(l) : getLayerPreviewDataUrl(l)
+                imageData: window.getLayerDataRaw ? window.getLayerDataRaw(l) : null
             });
         }
         window.StorageDB.saveProject(currentModelText, layersData)
@@ -129,9 +129,9 @@ window.onload = init;
 
 window.syncTextureToHost = function() {
     if (window.NetworkManager && window.NetworkManager.conn && !window.NetworkManager.isHost) {
-        if (typeof window.getLayerDataEncodedUrl === 'function' && typeof mainRT !== 'undefined') {
-            window.NetworkManager.sendMessage('SYNC_TEXTURE', { 
-                dataUrl: window.getLayerDataEncodedUrl({ rt: mainRT }) 
+        if (typeof window.getLayerDataRaw === 'function' && typeof mainRT !== 'undefined') {
+            window.NetworkManager.sendMessage('SYNC_TEXTURE_RAW', { 
+                rawData: window.getLayerDataRaw({ rt: mainRT }) 
             });
         }
     }

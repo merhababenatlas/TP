@@ -115,8 +115,20 @@ function initThreeJS() {
     const paintQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), paintMaterial);
     paintScene.add(paintQuad);
 
+    // BVH Kurulumu (Performanslı Raycasting)
+    if (window.MeshBVH) {
+        THREE.BufferGeometry.prototype.computeBoundsTree = window.MeshBVH.computeBoundsTree;
+        THREE.BufferGeometry.prototype.disposeBoundsTree = window.MeshBVH.disposeBoundsTree;
+        THREE.Mesh.prototype.raycast = window.MeshBVH.acceleratedRaycast;
+    }
+
     // Cube Material Initialization (map will be set by LayerManager)
     const geometry = new THREE.BoxGeometry(1, 1, 1);
+    if (window.MeshBVH && geometry.computeBoundsTree) {
+        try {
+            geometry.computeBoundsTree();
+        } catch(e) {}
+    }
     const material = new THREE.MeshStandardMaterial({ 
         transparent: true,
         alphaTest: 0.01
@@ -146,6 +158,7 @@ function initThreeJS() {
     if (typeof applyMaterialMode === 'function') applyMaterialMode();
 
     raycaster = new THREE.Raycaster();
+    raycaster.firstHitOnly = true; // Sadece ilk çarpanı bul (Büyük performans artışı)
 
     // Resize Handler
     const handleResize = () => {
@@ -211,7 +224,19 @@ function animate(now) {
             renderer.clear();
             renderer.render(scene, camera);
             
-            // Eğer çok uzun süre donduysa delta'yı sıfırla ki hızlanma yapmasın
+            // İstatistikleri güncelle
+            if (renderer.info && renderer.info.render) {
+                const fpsEl = document.getElementById('stat-fps');
+                const trisEl = document.getElementById('stat-tris');
+                const drawsEl = document.getElementById('stat-draws');
+                const texEl = document.getElementById('stat-tex');
+                
+                if (fpsEl) fpsEl.textContent = currentFps;
+                if (trisEl) trisEl.textContent = renderer.info.render.triangles;
+                if (drawsEl) drawsEl.textContent = renderer.info.render.calls;
+                if (texEl && renderer.info.memory) texEl.textContent = renderer.info.memory.textures;
+            }
+            
             if (fpsDelta > interval * 3) fpsDelta = interval;
             fpsDelta -= interval;
         }

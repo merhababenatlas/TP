@@ -38,6 +38,19 @@ function loadModelFromText(contents, skipSave = false) {
     const scale = size > 0 ? targetSize / size : 1;
     object.scale.set(scale, scale, scale);
 
+    // Compute BVH for all meshes in the loaded object
+    if (window.MeshBVH) {
+        object.traverse((child) => {
+            if (child.isMesh && child.geometry && child.geometry.computeBoundsTree) {
+                try {
+                    child.geometry.computeBoundsTree();
+                } catch(e) {
+                    console.warn("BVH generation failed for mesh, skipping...", e);
+                }
+            }
+        });
+    }
+
     cube = object;
     scene.add(cube);
     applyMaterialMode();

@@ -239,8 +239,11 @@ window.NetworkManager = {
                 return;
             }
             
-            if (msg.type === 'SYNC_TEXTURE' && this.isHost) {
-                // Received new texture from tablet
+            if (msg.type === 'SYNC_TEXTURE_RAW' && this.isHost) {
+                this.applySyncedTextureRaw(msg.rawData);
+            } 
+            else if (msg.type === 'SYNC_TEXTURE' && this.isHost) {
+                // Eski uyumluluk için
                 this.applySyncedTexture(msg.dataUrl);
             } 
             else if (msg.type === 'LOAD_ASSET' && !this.isHost) {
@@ -274,6 +277,14 @@ window.NetworkManager = {
     },
 
     // --- Feature Implementations ---
+
+    applySyncedTextureRaw: function(rawData) {
+        if (typeof mainRT !== 'undefined' && mainRT) {
+            if (typeof window.renderRawDataToRT === 'function') {
+                window.renderRawDataToRT(rawData, mainRT);
+            }
+        }
+    },
 
     applySyncedTexture: function(dataUrl) {
         // Load the image and update mainRT directly

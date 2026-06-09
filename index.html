@@ -15,7 +15,7 @@
     <div id="canvas-container"></div>
     
     <!-- Diagnostik / İstatistik Paneli -->
-    <div id="stats-panel" style="position: absolute; top: 10px; right: 10px; z-index: 10000; color: #00ff00; background: rgba(0,0,0,0.7); padding: 10px; font-family: monospace; font-size: 12px; pointer-events: none; white-space: pre;">
+    <div id="stats-panel" style="position: absolute; bottom: 10px; right: 10px; z-index: 10000; color: #00ff00; background: rgba(0,0,0,0.7); padding: 10px; font-family: monospace; font-size: 12px; pointer-events: none; white-space: pre;">
         İstatistikler yükleniyor...
     </div>
     
@@ -201,8 +201,31 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <script src="./js/lib/three.min.js"></script>
+    <script src="https://unpkg.com/three-mesh-bvh@0.9.10/build/index.umd.cjs"></script>
     <script src="./js/lib/OrbitControls.js"></script>
     <script src="./js/lib/OBJLoader.js"></script>
+
+    <div id="advanced-stats-panel" style="position: absolute; bottom: 150px; right: 10px; background: rgba(0,0,0,0.7); color: lime; font-family: monospace; padding: 10px; pointer-events: none; z-index: 9999; font-size: 14px;">
+        <span style="color: #88ff88;">[ ADVANCED STATS ]</span><br>
+        FPS: <span id="stat-fps">0</span><br>
+        Triangles: <span id="stat-tris">0</span><br>
+        Draw Calls: <span id="stat-draws">0</span><br>
+        Textures: <span id="stat-tex">0</span><br>
+        <div id="stat-errors" style="color: red; margin-top: 5px; max-width: 250px; word-wrap: break-word;"></div>
+    </div>
+    
+    <script>
+        window.onerror = function(msg, url, line, col, error) {
+            const errDiv = document.getElementById('stat-errors');
+            const file = url ? url.split('/').pop() : 'unknown';
+            if (errDiv) errDiv.innerHTML += `[${file}:${line}] ${msg}<br>`;
+            return false;
+        };
+        window.addEventListener('unhandledrejection', function(event) {
+            const errDiv = document.getElementById('stat-errors');
+            if (errDiv) errDiv.innerHTML += 'Promise: ' + (event.reason ? event.reason.message || event.reason : 'Unknown error') + '<br>';
+        });
+    </script>
 
     <!-- Tools -->
     <script src="./js/tools/Utils.js"></script>

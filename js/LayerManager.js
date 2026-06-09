@@ -64,18 +64,20 @@ function createLayerObj(savedLayer = null, isFirst = false) {
         };
 
         if (savedLayer && savedLayer.imageData) {
-            // Load image data into RenderTarget
-            const img = new Image();
-            img.onload = () => {
-                // If it's a double-wide packed image, use the unpack renderer
-                if (img.width === TEX_SIZE * 2) {
-                    window.renderPackedImageToRT(img, rt);
-                } else {
-                    // Backwards compatibility for old saved layers
-                    renderImageToRT(img, rt);
+            // IndexedDB klonlamasında prototype kaybolabileceği için daha sağlam bir kontrol
+            const isBinary = savedLayer.imageData instanceof Uint8Array || 
+                             savedLayer.imageData instanceof ArrayBuffer || 
+                             (savedLayer.imageData && savedLayer.imageData.byteLength !== undefined);
+                             
+            if (isBinary) {
+                const binaryData = savedLayer.imageData instanceof Uint8Array 
+                                   ? savedLayer.imageData 
+                                   : new Uint8Array(savedLayer.imageData);
+                                   
+                if (typeof window.renderRawDataToRT === 'function') {
+                    window.renderRawDataToRT(binaryData, rt);
                 }
                 blitLayers();
-                
                 finish({
                     id: savedLayer.id,
                     name: savedLayer.name || 'Layer',
@@ -83,18 +85,39 @@ function createLayerObj(savedLayer = null, isFirst = false) {
                     isVisible: savedLayer.isVisible !== undefined ? savedLayer.isVisible : true,
                     rt: rt
                 });
-            };
-            img.onerror = () => {
-                console.error("Failed to load layer image data");
-                finish({
-                    id: savedLayer.id,
-                    name: savedLayer.name || 'Layer',
-                    opacity: savedLayer.opacity !== undefined ? savedLayer.opacity : 100,
-                    isVisible: savedLayer.isVisible !== undefined ? savedLayer.isVisible : true,
-                    rt: rt
-                });
-            };
-            img.src = savedLayer.imageData;
+            } else {
+                // Load image data into RenderTarget (Eski uyumluluk: Base64 string)
+                const img = new Image();
+                img.onload = () => {
+                    // If it's a double-wide packed image, use the unpack renderer
+                    if (img.width === TEX_SIZE * 2) {
+                        window.renderPackedImageToRT(img, rt);
+                    } else {
+                        // Backwards compatibility for old saved layers
+                        renderImageToRT(img, rt);
+                    }
+                    blitLayers();
+                    
+                    finish({
+                        id: savedLayer.id,
+                        name: savedLayer.name || 'Layer',
+                        opacity: savedLayer.opacity !== undefined ? savedLayer.opacity : 100,
+                        isVisible: savedLayer.isVisible !== undefined ? savedLayer.isVisible : true,
+                        rt: rt
+                    });
+                };
+                img.onerror = () => {
+                    console.error("Failed to load layer image data");
+                    finish({
+                        id: savedLayer.id,
+                        name: savedLayer.name || 'Layer',
+                        opacity: savedLayer.opacity !== undefined ? savedLayer.opacity : 100,
+                        isVisible: savedLayer.isVisible !== undefined ? savedLayer.isVisible : true,
+                        rt: rt
+                    });
+                };
+                img.src = savedLayer.imageData;
+            }
         } else {
             if (isFirst) {
                 // Transparent clear
@@ -245,6 +268,59 @@ window.getLayerDataEncodedUrl = function(layerObj) {
     }
     exportCtxDouble.putImageData(exportImgDataDouble, 0, 0);
     return exportCanvasDouble.toDataURL('image/png');
+};
+
+window.getLayerDataRaw = function(layerObj) {
+    if (!renderer || !paintScene) return null;
+    const width = TEX_SIZE;
+    const height = TEX_SIZE;
+    initExportPools();
+    
+    const oldTarget = renderer.getRenderTarget();
+    
+    if (paintScene && paintScene.children.length > 0) {
+        paintScene.children[0].material = paintMaterial;
+    }
+    
+    renderer.setRenderTarget(export8BitRT);
+    renderer.clear();
+    paintMaterial.uniforms.tLayer.value = layerObj.rt.texture;
+    paintMaterial.uniforms.uOpacity.value = 1.0;
+    paintMaterial.blending = THREE.NoBlending;
+    renderer.render(paintScene, paintCamera);
+    paintMaterial.blending = THREE.NormalBlending;
+    
+    renderer.readRenderTargetPixels(export8BitRT, 0, 0, width, height, exportPixels);
+    renderer.setRenderTarget(oldTarget);
+    
+    // Y eksenini ters çevirmeden (WebGL formatında) doğrudan kopyala. 
+    // Zaten DataTexture olarak yüklerken flipY ayarını kullanabiliriz.
+    return new Uint8Array(exportPixels);
+};
+
+window.renderRawDataToRT = function(uint8Array, rt) {
+    if (!renderer || !paintScene) return;
+    
+    const dataTexture = new THREE.DataTexture(uint8Array, TEX_SIZE, TEX_SIZE, THREE.RGBAFormat);
+    dataTexture.type = THREE.UnsignedByteType;
+    dataTexture.needsUpdate = true;
+    
+    const oldTarget = renderer.getRenderTarget();
+    renderer.setRenderTarget(rt);
+    renderer.clear();
+    
+    paintMaterial.uniforms.tLayer.value = dataTexture;
+    paintMaterial.uniforms.uOpacity.value = 1.0;
+    paintMaterial.blending = THREE.NoBlending;
+    
+    if (paintScene.children.length > 0) {
+        paintScene.children[0].material = paintMaterial;
+    }
+    
+    renderer.render(paintScene, paintCamera);
+    renderer.setRenderTarget(oldTarget);
+    
+    dataTexture.dispose();
 };
 
 window.renderPackedImageToRT = function(img, rt) {

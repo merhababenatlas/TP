@@ -37,6 +37,7 @@ function onPointerDown(event) {
             isStrokeActive = true;
             
             lastMouse = { x: event.clientX, y: event.clientY };
+            strokePoints = [lastMouse];
             lastUvPosition = { x: intersect.uv.x, y: intersect.uv.y };
             lastMouseMoveTime = Date.now();
             
@@ -56,6 +57,8 @@ function onPointerDown(event) {
 }
 
 function onPointerMove(event) {
+    if (event.isPrimary === false) return; // Ignore multi-touch secondary points
+    
     const intersect = getIntersectionFromEvent(event);
     
     if (intersect && intersect.uv) {
@@ -79,28 +82,71 @@ function onPointerMove(event) {
             lastMouseMoveTime = Date.now();
             
             const currentMouse = { x: event.clientX, y: event.clientY };
-            if (lastMouse) {
-                const dx = currentMouse.x - lastMouse.x;
-                const dy = currentMouse.y - lastMouse.y;
+            strokePoints.push(currentMouse);
+            
+            if (strokePoints.length >= 3) {
+                const p0 = strokePoints[strokePoints.length - 3];
+                const p1 = strokePoints[strokePoints.length - 2];
+                const p2 = strokePoints[strokePoints.length - 1];
+                
+                // Smooth quadratic curve from mid(p0,p1) to mid(p1,p2)
+                const startX = (p0.x + p1.x) / 2;
+                const startY = (p0.y + p1.y) / 2;
+                const endX = (p1.x + p2.x) / 2;
+                const endY = (p1.y + p2.y) / 2;
+                const controlX = p1.x;
+                const controlY = p1.y;
+                
+                const dx = endX - startX;
+                const dy = endY - startY;
                 const dist = Math.sqrt(dx*dx + dy*dy);
                 
                 const settings = toolSettings[currentTool];
                 const sSize = settings ? settings.size : 50;
                 
-                // Daha performanslı adım aralıkları (Özellikle zayıf tablet CPU'ları için)
-                let stepMultiplier = (currentTool === 'blur' || currentTool === 'smear') ? 0.5 : 0.15;
-                const stampDist = Math.max(2, sSize * stepMultiplier); 
+                // Daha performanslı adım aralıkları (öncekinden 2.5 kat daha az raycast atacak)
+                let stepMultiplier = (currentTool === 'blur' || currentTool === 'smear') ? 0.7 : 0.35;
+                const stampDist = Math.max(4, sSize * stepMultiplier); 
                 
-                // Darboğazı önlemek için tek bir fare hareketinde maksimum 20 ışın gönderme (raycast) ve çizim sınırı
-                const steps = Math.min(20, Math.max(1, Math.floor(dist / stampDist)));
+                // Darboğazı önlemek için tek bir fare hareketinde maksimum raycast sınırı (20'den 12'ye düşürüldü)
+                const steps = Math.min(12, Math.max(1, Math.floor(dist / stampDist)));
+                
+                // Bezier üzerinde gezin
+                for (let i = 1; i <= steps; i++) {
+                    const t = i / steps;
+                    const mt = 1 - t;
+                    const bX = mt * mt * startX + 2 * mt * t * controlX + t * t * endX;
+                    const bY = mt * mt * startY + 2 * mt * t * controlY + t * t * endY;
+                    
+                    const synthIntersect = getIntersectionFromEvent({ clientX: bX, clientY: bY });
+                    if (synthIntersect && synthIntersect.uv) {
+                        applyTool(synthIntersect.uv.x, synthIntersect.uv.y, oldUvPosition.x, oldUvPosition.y);
+                        oldUvPosition.x = synthIntersect.uv.x;
+                        oldUvPosition.y = synthIntersect.uv.y;
+                    }
+                }
+            } else if (strokePoints.length === 2) {
+                // Sadece iki nokta varsa düz çizgi çiz (hareketin başı)
+                const p0 = strokePoints[0];
+                const p1 = strokePoints[1];
+                const dx = p1.x - p0.x;
+                const dy = p1.y - p0.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                
+                const settings = toolSettings[currentTool];
+                const sSize = settings ? settings.size : 50;
+                let stepMultiplier = (currentTool === 'blur' || currentTool === 'smear') ? 0.7 : 0.35;
+                const stampDist = Math.max(4, sSize * stepMultiplier); 
+                const steps = Math.min(12, Math.max(1, Math.floor(dist / stampDist)));
                 
                 for (let i = 1; i <= steps; i++) {
-                    const lerpX = lastMouse.x + dx * (i / steps);
-                    const lerpY = lastMouse.y + dy * (i / steps);
-                    
+                    const lerpX = p0.x + dx * (i / steps);
+                    const lerpY = p0.y + dy * (i / steps);
                     const synthIntersect = getIntersectionFromEvent({ clientX: lerpX, clientY: lerpY });
                     if (synthIntersect && synthIntersect.uv) {
                         applyTool(synthIntersect.uv.x, synthIntersect.uv.y, oldUvPosition.x, oldUvPosition.y);
+                        oldUvPosition.x = synthIntersect.uv.x;
+                        oldUvPosition.y = synthIntersect.uv.y;
                     }
                 }
             } else {
@@ -130,6 +176,7 @@ function onPointerUp(event) {
 
     if (isDrawing && currentTool !== 'picker') {
         isStrokeActive = false;
+        strokePoints = []; // Çizim bitince noktaları temizle
         if (typeof blitLayers === 'function') blitLayers(); // Final blend
         
         if (typeof triggerAutosave === 'function') triggerAutosave();

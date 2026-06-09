@@ -46,6 +46,7 @@ let tempRT = null;   // Target for ping-ponging (Blur, Smear)
 // Pointer State
 let isDrawing = false;
 let lastMouse = null;
+let strokePoints = [];
 let airbrushInterval = null;
 let lastUvPosition = null;
 let lastMouseMoveTime = 0;
