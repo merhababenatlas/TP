@@ -117,12 +117,15 @@ function applyWireframeMode() {
                 child.material.wireframe = false;
                 child.material.colorWrite = true;
                 child.material.depthWrite = true;
+                child.material.polygonOffset = false;
             } else if (wireframeMode === 1) {
                 child.material.wireframe = false;
                 child.material.colorWrite = false;
                 child.material.depthWrite = false;
+                child.material.polygonOffset = false;
                 
-                const wireframeGeometry = new THREE.WireframeGeometry(child.geometry);
+                // WireframeGeometry yerine EdgesGeometry kullanarak iç triangulasyonu gizle
+                const wireframeGeometry = new THREE.EdgesGeometry(child.geometry);
                 const wireframeMaterial = new THREE.LineBasicMaterial({
                     color: window.wireframeColor || 0x00ff00,
                     depthTest: true,
@@ -137,7 +140,12 @@ function applyWireframeMode() {
                 child.material.colorWrite = true;
                 child.material.depthWrite = true;
                 
-                const wireframeGeometry = new THREE.WireframeGeometry(child.geometry);
+                // Çizgilerin kaybolmasını (Z-fighting) önlemek için poligonu geriye it
+                child.material.polygonOffset = true;
+                child.material.polygonOffsetFactor = 2;
+                child.material.polygonOffsetUnits = 2;
+                
+                const wireframeGeometry = new THREE.EdgesGeometry(child.geometry);
                 const wireframeMaterial = new THREE.LineBasicMaterial({
                     color: window.wireframeColor || 0x00ff00,
                     depthTest: true,
