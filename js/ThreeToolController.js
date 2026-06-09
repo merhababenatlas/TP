@@ -87,11 +87,12 @@ function onPointerMove(event) {
                 const settings = toolSettings[currentTool];
                 const sSize = settings ? settings.size : 50;
                 
-                // For blur and smear, take fewer steps to prevent severe interpolation loss (blocky artifacts)
-                // For brush and eraser, take dense steps to prevent caterpillar effect
-                let stepMultiplier = (currentTool === 'blur' || currentTool === 'smear') ? 0.25 : 0.05;
-                const stampDist = Math.max(1, sSize * stepMultiplier); 
-                const steps = Math.max(1, Math.floor(dist / stampDist));
+                // Daha performanslı adım aralıkları (Özellikle zayıf tablet CPU'ları için)
+                let stepMultiplier = (currentTool === 'blur' || currentTool === 'smear') ? 0.5 : 0.15;
+                const stampDist = Math.max(2, sSize * stepMultiplier); 
+                
+                // Darboğazı önlemek için tek bir fare hareketinde maksimum 20 ışın gönderme (raycast) ve çizim sınırı
+                const steps = Math.min(20, Math.max(1, Math.floor(dist / stampDist)));
                 
                 for (let i = 1; i <= steps; i++) {
                     const lerpX = lastMouse.x + dx * (i / steps);

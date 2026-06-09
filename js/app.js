@@ -3,11 +3,20 @@
 /// </summary>
 
 function triggerAutosave() {
-    if (!window.StorageDB) return;
-    if (typeof window.syncLayersToHost === 'function') window.syncLayersToHost();
-    if (typeof window.syncTextureToHost === 'function') window.syncTextureToHost();
     if (autosaveTimeout) clearTimeout(autosaveTimeout);
     autosaveTimeout = setTimeout(() => {
+        const isClient = (window.NetworkManager && window.NetworkManager.conn && !window.NetworkManager.isHost);
+        
+        // Sync to host if connected (debounced)
+        if (isClient) {
+            if (typeof window.syncLayersToHost === 'function') window.syncLayersToHost();
+            if (typeof window.syncTextureToHost === 'function') window.syncTextureToHost();
+            return; // Skip local IDB save on tablet to save CPU/Battery
+        }
+
+        // Local autosave for standalone use
+        if (!window.StorageDB || typeof layers === 'undefined') return;
+        
         const layersData = [];
         for (let i = 0; i < layers.length; i++) {
             const l = layers[i];

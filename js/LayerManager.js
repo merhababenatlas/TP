@@ -120,11 +120,40 @@ function createLayerObj(savedLayer = null, isFirst = false) {
     });
 }
 
+let export8BitRT = null;
+let exportCanvasSingle = null;
+let exportCtxSingle = null;
+let exportCanvasDouble = null;
+let exportCtxDouble = null;
+let exportImgDataSingle = null;
+let exportImgDataDouble = null;
+let exportPixels = null;
+
+function initExportPools() {
+    if (!export8BitRT) {
+        export8BitRT = new THREE.WebGLRenderTarget(TEX_SIZE, TEX_SIZE, { format: THREE.RGBAFormat, type: THREE.UnsignedByteType });
+        
+        exportCanvasSingle = document.createElement('canvas');
+        exportCanvasSingle.width = TEX_SIZE;
+        exportCanvasSingle.height = TEX_SIZE;
+        exportCtxSingle = exportCanvasSingle.getContext('2d');
+        exportImgDataSingle = exportCtxSingle.createImageData(TEX_SIZE, TEX_SIZE);
+
+        exportCanvasDouble = document.createElement('canvas');
+        exportCanvasDouble.width = TEX_SIZE * 2;
+        exportCanvasDouble.height = TEX_SIZE;
+        exportCtxDouble = exportCanvasDouble.getContext('2d');
+        exportImgDataDouble = exportCtxDouble.createImageData(TEX_SIZE * 2, TEX_SIZE);
+
+        exportPixels = new Uint8Array(TEX_SIZE * TEX_SIZE * 4);
+    }
+}
+
 function getLayerPreviewDataUrl(layerObj) {
     if (!renderer || !paintScene) return '';
     const width = TEX_SIZE;
     const height = TEX_SIZE;
-    const temp8BitRT = new THREE.WebGLRenderTarget(width, height, { format: THREE.RGBAFormat, type: THREE.UnsignedByteType });
+    initExportPools();
     
     const oldTarget = renderer.getRenderTarget();
     
@@ -132,67 +161,57 @@ function getLayerPreviewDataUrl(layerObj) {
         paintScene.children[0].material = paintMaterial;
     }
     
-    renderer.setRenderTarget(temp8BitRT);
+    renderer.setRenderTarget(export8BitRT);
     renderer.clear(); // Ensure transparent background
     
-    // If it's a layer, draw it using NoBlending directly to copy colors and alpha
-
     paintMaterial.uniforms.tLayer.value = layerObj.rt.texture;
     paintMaterial.uniforms.uOpacity.value = 1.0;
     paintMaterial.blending = THREE.NoBlending;
     renderer.render(paintScene, paintCamera);
     paintMaterial.blending = THREE.NormalBlending; // Restore
     
-    const pixels = new Uint8Array(width * height * 4);
-    renderer.readRenderTargetPixels(temp8BitRT, 0, 0, width, height, pixels);
+    renderer.readRenderTargetPixels(export8BitRT, 0, 0, width, height, exportPixels);
     renderer.setRenderTarget(oldTarget);
-    temp8BitRT.dispose();
-    
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    const imgData = ctx.createImageData(width, height);
     
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             const srcIdx = (y * width + x) * 4;
             const dstIdx = ((height - 1 - y) * width + x) * 4;
-            const r = pixels[srcIdx];
-            const g = pixels[srcIdx+1];
-            const b = pixels[srcIdx+2];
-            const a = pixels[srcIdx+3];
+            const r = exportPixels[srcIdx];
+            const g = exportPixels[srcIdx+1];
+            const b = exportPixels[srcIdx+2];
+            const a = exportPixels[srcIdx+3];
             
             if (a > 0 && a < 255) {
-                imgData.data[dstIdx] = Math.min(255, (r * 255) / a);
-                imgData.data[dstIdx+1] = Math.min(255, (g * 255) / a);
-                imgData.data[dstIdx+2] = Math.min(255, (b * 255) / a);
-                imgData.data[dstIdx+3] = a;
+                exportImgDataSingle.data[dstIdx] = Math.min(255, (r * 255) / a);
+                exportImgDataSingle.data[dstIdx+1] = Math.min(255, (g * 255) / a);
+                exportImgDataSingle.data[dstIdx+2] = Math.min(255, (b * 255) / a);
+                exportImgDataSingle.data[dstIdx+3] = a;
             } else {
-                imgData.data[dstIdx] = r;
-                imgData.data[dstIdx+1] = g;
-                imgData.data[dstIdx+2] = b;
-                imgData.data[dstIdx+3] = a;
+                exportImgDataSingle.data[dstIdx] = r;
+                exportImgDataSingle.data[dstIdx+1] = g;
+                exportImgDataSingle.data[dstIdx+2] = b;
+                exportImgDataSingle.data[dstIdx+3] = a;
             }
         }
     }
-    ctx.putImageData(imgData, 0, 0);
-    return canvas.toDataURL('image/png');
+    exportCtxSingle.putImageData(exportImgDataSingle, 0, 0);
+    return exportCanvasSingle.toDataURL('image/png');
 }
 
 window.getLayerDataEncodedUrl = function(layerObj) {
     if (!renderer || !paintScene) return '';
     const width = TEX_SIZE;
     const height = TEX_SIZE;
+    initExportPools();
     
-    const temp8BitRT = new THREE.WebGLRenderTarget(width, height, { format: THREE.RGBAFormat, type: THREE.UnsignedByteType });
     const oldTarget = renderer.getRenderTarget();
     
     if (paintScene && paintScene.children.length > 0) {
         paintScene.children[0].material = paintMaterial;
     }
     
-    renderer.setRenderTarget(temp8BitRT);
+    renderer.setRenderTarget(export8BitRT);
     renderer.clear();
     paintMaterial.uniforms.tLayer.value = layerObj.rt.texture;
     paintMaterial.uniforms.uOpacity.value = 1.0;
@@ -200,17 +219,8 @@ window.getLayerDataEncodedUrl = function(layerObj) {
     renderer.render(paintScene, paintCamera);
     paintMaterial.blending = THREE.NormalBlending;
     
-    const pixels = new Uint8Array(width * height * 4);
-    renderer.readRenderTargetPixels(temp8BitRT, 0, 0, width, height, pixels);
+    renderer.readRenderTargetPixels(export8BitRT, 0, 0, width, height, exportPixels);
     renderer.setRenderTarget(oldTarget);
-    temp8BitRT.dispose();
-    
-    // Create Double-Wide Canvas
-    const canvas = document.createElement('canvas');
-    canvas.width = width * 2;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    const imgData = ctx.createImageData(width * 2, height);
     
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
@@ -219,22 +229,22 @@ window.getLayerDataEncodedUrl = function(layerObj) {
             
             // Left Side: RGB
             const leftDstIdx = (flippedY * (width * 2) + x) * 4;
-            imgData.data[leftDstIdx] = pixels[srcIdx];
-            imgData.data[leftDstIdx+1] = pixels[srcIdx+1];
-            imgData.data[leftDstIdx+2] = pixels[srcIdx+2];
-            imgData.data[leftDstIdx+3] = 255;
+            exportImgDataDouble.data[leftDstIdx] = exportPixels[srcIdx];
+            exportImgDataDouble.data[leftDstIdx+1] = exportPixels[srcIdx+1];
+            exportImgDataDouble.data[leftDstIdx+2] = exportPixels[srcIdx+2];
+            exportImgDataDouble.data[leftDstIdx+3] = 255;
             
             // Right Side: Alpha
             const rightDstIdx = (flippedY * (width * 2) + (x + width)) * 4;
-            const alphaVal = pixels[srcIdx+3];
-            imgData.data[rightDstIdx] = alphaVal;
-            imgData.data[rightDstIdx+1] = alphaVal;
-            imgData.data[rightDstIdx+2] = alphaVal;
-            imgData.data[rightDstIdx+3] = 255;
+            const alphaVal = exportPixels[srcIdx+3];
+            exportImgDataDouble.data[rightDstIdx] = alphaVal;
+            exportImgDataDouble.data[rightDstIdx+1] = alphaVal;
+            exportImgDataDouble.data[rightDstIdx+2] = alphaVal;
+            exportImgDataDouble.data[rightDstIdx+3] = 255;
         }
     }
-    ctx.putImageData(imgData, 0, 0);
-    return canvas.toDataURL('image/png');
+    exportCtxDouble.putImageData(exportImgDataDouble, 0, 0);
+    return exportCanvasDouble.toDataURL('image/png');
 };
 
 window.renderPackedImageToRT = function(img, rt) {

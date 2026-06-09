@@ -194,7 +194,11 @@ window.setBackgroundColor = function(hexColor) {
     document.body.style.backgroundColor = hexColor;
 };
 
-function animate() {
+let lastStatsTime = 0;
+let frames = 0;
+let currentFps = 0;
+
+function animate(now) {
     requestAnimationFrame(animate);
     
     if (fpsLimit > 0) {
@@ -217,5 +221,27 @@ function animate() {
         renderer.setRenderTarget(null);
         renderer.clear();
         renderer.render(scene, camera);
+    }
+
+    // İstatistik Güncelleme (Render sonrası, doğru sayımları almak için)
+    frames++;
+    if (now > lastStatsTime + 1000) {
+        currentFps = Math.round((frames * 1000) / (now - lastStatsTime));
+        frames = 0;
+        lastStatsTime = now;
+        
+        const statsEl = document.getElementById('stats-panel');
+        if (statsEl && renderer) {
+            let memStr = 'Memory: N/A';
+            if (performance && performance.memory) {
+                memStr = `Memory: ${(performance.memory.usedJSHeapSize / 1048576).toFixed(1)} MB / ${(performance.memory.jsHeapSizeLimit / 1048576).toFixed(0)} MB`;
+            }
+            statsEl.innerText = `[ DIAGNOSTICS ]
+FPS       : ${currentFps}
+Draw Calls: ${renderer.info.render.calls}
+Triangles : ${renderer.info.render.triangles}
+Textures  : ${renderer.info.memory.textures}
+${memStr}`;
+        }
     }
 }
